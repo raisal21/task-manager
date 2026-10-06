@@ -308,3 +308,28 @@ input:focus-visible {
   white-space: nowrap;
   border: 0;
 }
+
+.status-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  border: 0;
+}
+
+.status-filter legend {
+  padding: 0;
+  margin-bottom: 0.25rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status-filter label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.925rem;
+}

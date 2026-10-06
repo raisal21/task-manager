@@ -79,8 +79,14 @@ export function createBoard(name: string): Promise<Board> {
   });
 }
 
-export function getTasks(boardId: number, signal?: AbortSignal): Promise<Task[]> {
-  return request<Task[]>(`/api/boards/${boardId}/tasks`, { signal });
+/** status null: all tasks of the board. Otherwise the server keeps only the tasks with that status (A14). */
+export function getTasks(
+  boardId: number,
+  status: TaskStatus | null,
+  signal?: AbortSignal,
+): Promise<Task[]> {
+  const query = status === null ? "" : `?status=${encodeURIComponent(status)}`;
+  return request<Task[]>(`/api/boards/${boardId}/tasks${query}`, { signal });
 }
 
 export function createTask(boardId: number, task: NewTask): Promise<Task> {
