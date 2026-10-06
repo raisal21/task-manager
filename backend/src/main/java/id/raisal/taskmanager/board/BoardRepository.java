@@ -8,4 +8,6 @@ public interface BoardRepository extends Repository<Board, Long> {
 
     /** A5: created_at from the first to the last, then id. */
     List<Board> findAllByOrderByCreatedAtAscIdAsc();
+
+    Board save(Board board);
 }

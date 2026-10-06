@@ -1,6 +1,6 @@
 # Task Manager: backend
 
-The Spring Boot service of the Task Manager. It has one endpoint, `GET /api/boards`, and keeps its data in PostgreSQL.
+The Spring Boot service of the Task Manager. It has the board endpoints `GET /api/boards` and `POST /api/boards`, and keeps its data in PostgreSQL.
 
 ## Prerequisites
 
@@ -51,6 +51,26 @@ curl -i http://localhost:8080/api/boards
 
 `createdAt` is an ISO-8601 UTC time. Failures use the default Spring Boot error body at this time.
 
+### `POST /api/boards`
+
+Adds a board. The body is a JSON object with `name`. The service removes the spaces at the two ends of the name. The name must not be empty, and it can have 100 characters at most (A6). The service sets `createdAt` from its clock (A12).
+
+```bash
+curl -i -H 'Content-Type: application/json' -d '{"name":"  Sprint 1  "}' http://localhost:8080/api/boards
+```
+
+Response `201`:
+
+```json
+{"id":3,"name":"Sprint 1","createdAt":"2026-10-06T09:43:17.154600Z"}
+```
+
+A missing name, an empty name, a name with only spaces, or a name with more than 100 characters gives `400` with `Content-Type: application/problem+json`:
+
+```json
+{"detail":"Name is required.","instance":"/api/boards","status":400,"title":"Validation failed","code":"VALIDATION_FAILED","field":"name"}
+```
+
 ### CORS
 
 The browser frontend runs on another origin than the API. The backend answers requests from the origins in `APP_CORS_ALLOWED_ORIGINS` for the paths under `/api/` (methods GET, POST, PATCH, and DELETE). A request from any other origin gets 403. CORS does not protect the API from other clients, such as curl.
@@ -81,4 +101,4 @@ Full proof on a clean clone with JDK 17 comes with the last ticket of the plan. 
 
 ## Status
 
-The backend lists boards. It cannot add boards, it has no tasks, and failures use the default Spring Boot error body.
+The backend lists and adds boards. It has no tasks. Only a name that fails the board name rule gets the documented error body. Other failures use the default Spring Boot error body.
