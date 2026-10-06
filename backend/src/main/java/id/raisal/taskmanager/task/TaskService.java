@@ -82,6 +82,14 @@ public class TaskService {
         return task;
     }
 
+    /** One write transaction with one DELETE statement. A task that is not there (also if it is just gone) is a 404. */
+    @Transactional
+    public void deleteTask(long taskId) {
+        if (tasks.deleteTaskById(taskId) == 0) {
+            throw new NotFoundException("There is no task with ID " + taskId + ".");
+        }
+    }
+
     private void requireBoard(long boardId) {
         if (boards.findById(boardId).isEmpty()) {
             throw new NotFoundException(noBoardMessage(boardId));

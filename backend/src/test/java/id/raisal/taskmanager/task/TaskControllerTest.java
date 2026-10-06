@@ -1,9 +1,12 @@
 package id.raisal.taskmanager.task;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -142,6 +145,23 @@ class TaskControllerTest {
         mvc.perform(patch("/api/tasks/99").contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"DONE\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void deletesATaskAndSends204WithoutABody() throws Exception {
+        tasks.add(new Task(5L, 1L, "Write", null, TaskStatus.TODO, Instant.parse("2026-01-01T10:00:00Z"), Instant.parse("2026-01-01T10:00:00Z")));
+
+        mvc.perform(delete("/api/tasks/5")).andExpect(status().isNoContent()).andExpect(content().string(""));
+
+        assertThat(tasks.all()).isEmpty();
+    }
+
+    @Test
+    void sends404WhenDeletingAMissingTask() throws Exception {
+        mvc.perform(delete("/api/tasks/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("There is no task with ID 99."));
     }
 
     private ResultActions postTask(long boardId, String json) throws Exception {

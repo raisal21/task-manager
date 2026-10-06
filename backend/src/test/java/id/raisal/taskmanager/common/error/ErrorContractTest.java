@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -229,6 +230,21 @@ class ErrorContractTest {
     void wrongTaskIdTypeOnPatchUsesErrorShape() throws Exception {
         assertErrorShape(patchTask("/api/tasks/abc", "{\"status\":\"DONE\"}"), 400, "VALIDATION_FAILED", "/api/tasks/abc")
                 .andExpect(jsonPath("$.field").value("taskId"));
+    }
+
+    @Test
+    void wrongTaskIdTypeOnDeleteUsesErrorShape() throws Exception {
+        assertErrorShape(mvc.perform(delete("/api/tasks/abc")), 400, "VALIDATION_FAILED", "/api/tasks/abc")
+                .andExpect(jsonPath("$.field").value("taskId"));
+    }
+
+    @Test
+    void unsupportedMethodOnATaskUsesErrorShape() throws Exception {
+        ResultActions result = mvc.perform(put("/api/tasks/1").contentType(MediaType.APPLICATION_JSON).content("{}"));
+
+        assertErrorShape(result, 405, "METHOD_NOT_ALLOWED", "/api/tasks/1")
+                .andExpect(header().string("Allow", containsString("PATCH")))
+                .andExpect(header().string("Allow", containsString("DELETE")));
     }
 
     /** All members are there. field is present, also when it is null. */

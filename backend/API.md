@@ -97,6 +97,20 @@ Errors, in this sequence (A11):
 {"type":"about:blank","title":"Bad Request","status":400,"detail":"Unknown field 'title'. Only 'status' can be changed.","instance":"/api/tasks/1","code":"VALIDATION_FAILED","field":"title"}
 ```
 
+### `DELETE /api/tasks/{taskId}`
+
+Deletes one task.
+
+```bash
+curl -i -X DELETE http://localhost:8080/api/tasks/1
+```
+
+| Result | Status | Body |
+| --- | --- | --- |
+| The task is deleted | 204 | none |
+| `taskId` is not a number | 400 | The error body, `VALIDATION_FAILED`, field `taskId` |
+| There is no task with this ID. This is also the answer for a second delete of the same task. | 404 | The error body, `NOT_FOUND` |
+
 ## Errors
 
 All failures use one JSON body with the content type `application/problem+json` (RFC 9457 Problem Details, with the extension members `code` and `field`). This includes the failures that Spring makes before a controller starts, for example malformed JSON, an unknown path, an incorrect method, an unsupported media type, and a rejected CORS origin.
@@ -139,7 +153,7 @@ All failures use one JSON body with the content type `application/problem+json` 
 
 An input failure or a domain failure never gives 500. The service writes the details of a 500 fault to its log only.
 
-New operations add their own rows to this table. The errors of the deletes are not available yet.
+New operations add their own rows to this table. The errors of the board delete are not available yet.
 
 ### Examples
 

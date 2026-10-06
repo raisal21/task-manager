@@ -130,6 +130,36 @@ class TaskServiceTest {
         assertThat(service.addTask(BOARD_ID, "Title", description).getDescription()).isNull();
     }
 
+    // --- deleteTask ---
+
+    @Test
+    void deletesTask() {
+        Task keep = storedTask(1, TaskStatus.TODO);
+        storedTask(2, TaskStatus.DONE);
+
+        service.deleteTask(2);
+
+        assertThat(tasks.all()).containsExactly(keep);
+    }
+
+    @Test
+    void rejectsDeleteOfMissingTask() {
+        Task keep = storedTask(1, TaskStatus.TODO);
+
+        assertThatThrownBy(() -> service.deleteTask(42))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("There is no task with ID 42.");
+        assertThat(tasks.all()).containsExactly(keep);
+    }
+
+    @Test
+    void rejectsASecondDeleteOfTheSameTask() {
+        storedTask(1, TaskStatus.TODO);
+        service.deleteTask(1);
+
+        assertThatThrownBy(() -> service.deleteTask(1)).isInstanceOf(NotFoundException.class);
+    }
+
     // --- changeStatus ---
 
     private Task storedTask(long id, TaskStatus status) {

@@ -2,6 +2,7 @@ package id.raisal.taskmanager.task;
 
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,5 +35,11 @@ public class TaskController {
     @PatchMapping("/api/tasks/{taskId}")
     public TaskResponse changeStatus(@PathVariable long taskId, @RequestBody UpdateTaskRequest request) {
         return TaskResponse.from(taskService.changeStatus(taskId, request.status(), request.unknownFields()));
+    }
+
+    @DeleteMapping("/api/tasks/{taskId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteTask(@PathVariable long taskId) {
+        taskService.deleteTask(taskId);
     }
 }

@@ -45,4 +45,9 @@ public class InMemoryTaskRepository implements TaskRepository {
     public Optional<Task> findById(Long id) {
         return tasks.stream().filter(task -> task.getId().equals(id)).findFirst();
     }
+
+    @Override
+    public int deleteTaskById(Long id) {
+        return tasks.removeIf(task -> task.getId().equals(id)) ? 1 : 0;
+    }
 }
