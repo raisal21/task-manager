@@ -10,7 +10,7 @@ export type RequestState<T> =
 type ReadFunction<T> = (signal: AbortSignal) => Promise<T>;
 
 /**
- * The state of one read, and the read guard (P1) for it. Both lists use it.
+ * The state of one read, and the read guard for it. Both lists use it.
  *
  * - The read starts when the component mounts. Until the first response, the state is "loading".
  * - When `read` changes (for example another filter), the state is "loading" at once, and a new read starts.

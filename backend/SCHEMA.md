@@ -1,6 +1,6 @@
 # Task Manager schema
 
-The PostgreSQL 18 schema of the backend. Flyway makes it from the migrations in `src/main/resources/db/migration` when the backend starts. The migrations are the source. This document gives the tables, the columns, the constraints, the indexes, and the reason for each choice.
+The PostgreSQL 18 schema of the backend. Assumption IDs such as A3 or A10 are defined in the [root README](../README.md#assumptions). Flyway makes it from the migrations in `src/main/resources/db/migration` when the backend starts. The migrations are the source. This document gives the tables, the columns, the constraints, the indexes, and the reason for each choice.
 
 | Migration | Content |
 | --- | --- |
@@ -66,10 +66,10 @@ There is no other index, for these reasons:
 
 ## Rejected alternatives
 
-- **A lookup table or a PostgreSQL `ENUM` for the status (dec_04).** Three fixed values do not need a join, and a lookup table would add a foreign key and a second table to maintain. An `ENUM` type is harder to change in a migration than a `CHECK`. The `CHECK` shows the rule in the table definition.
-- **`ON DELETE CASCADE` for the tasks of a board (dec_03).** It would delete the tasks together with the board without any message. `RESTRICT` keeps the tasks until a user deletes them. The rule holds for all clients, also for SQL without the API.
-- **`btrim(column) <> ''` for the name and title checks (dec_07).** It trims only spaces, so a text with only tabs gets through. The regular expression `~ '\S'` finds any character that is not white space.
-- **A composite index `tasks (board_id, status)` (dec_08).** No query filters by status in SQL, so the second column would not be used.
+- **A lookup table or a PostgreSQL `ENUM` for the status.** Three fixed values do not need a join, and a lookup table would add a foreign key and a second table to maintain. An `ENUM` type is harder to change in a migration than a `CHECK`. The `CHECK` shows the rule in the table definition.
+- **`ON DELETE CASCADE` for the tasks of a board.** It would delete the tasks together with the board without any message. `RESTRICT` keeps the tasks until a user deletes them. The rule holds for all clients, also for SQL without the API.
+- **`btrim(column) <> ''` for the name and title checks.** It trims only spaces, so a text with only tabs gets through. The regular expression `~ '\S'` finds any character that is not white space.
+- **A composite index `tasks (board_id, status)`.** No query filters by status in SQL, so the second column would not be used.
 - **A unique constraint on the board name (A3).** The case study gives no such rule. Two boards with the same name are permitted.
 
 ## Check the schema in a database
@@ -80,4 +80,4 @@ With the database from `docker compose up -d db` and the backend started once, i
 docker compose exec db psql -U taskmanager -d taskmanager -c '\d boards' -c '\d tasks'
 ```
 
-The output has the same columns, types, defaults, constraints, and indexes as this document, and the table `flyway_schema_history` has the three migrations. PostgreSQL 18 also lists each `NOT NULL` rule as a named constraint. This document gives them in the column "Null".
+The output has the same columns, types, defaults, constraints, and indexes as this document, and the table `flyway_schema_history` has the three migrations. In PostgreSQL 18, each `NOT NULL` rule is also a named constraint in the catalog `pg_constraint`. This document gives them in the column "Null".

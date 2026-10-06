@@ -43,7 +43,7 @@ public class BoardService {
      * A board can be deleted only if it has no tasks (A2). One write transaction: the task check, then one DELETE
      * statement. The statement runs at once, so that its foreign key error comes here and not at the commit.
      * Another transaction can add a task between the check and the DELETE. Then the foreign key
-     * (ON DELETE RESTRICT) rejects the DELETE, and the answer is the same 409 (section 7.10).
+     * (ON DELETE RESTRICT) rejects the DELETE, and the answer is the same 409.
      */
     @Transactional
     public void deleteBoard(long boardId) {

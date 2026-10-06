@@ -48,7 +48,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Import({TestcontainersConfiguration.class, ErrorContractIT.Probe.class, ErrorContractIT.Gates.class})
 class ErrorContractIT {
 
-    /** Race tests (section 7.10) use this gate. It is in test sources only. */
+    /** Race tests use this gate. It is in test sources only. */
     static final PauseGate GATE = new PauseGate();
 
     /** Wraps the repositories, so that a test can stop a service after one of its repository calls. */

@@ -105,7 +105,7 @@ class TaskServiceTest {
 
     @Test
     void creationTimesUseSameClockInstant() {
-        // A12 and P6: one instant for both times. TIMESTAMPTZ keeps microseconds, so the service cuts the Clock value.
+        // A12: one instant for both times. TIMESTAMPTZ keeps microseconds, so the service cuts the Clock value.
         Task task = service.addTask(BOARD_ID, "Title", null);
 
         assertThat(task.getCreatedAt()).isEqualTo(NOW_IN_MICROS);

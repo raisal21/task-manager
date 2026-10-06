@@ -36,7 +36,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * Other constraint violation               500 INTERNAL_ERROR
  * All other faults                         500 INTERNAL_ERROR, with a general message
  * </pre>
- * Add a row with each new operation (P4).
+ * Add a row with each new operation.
  */
 @RestControllerAdvice
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
@@ -86,7 +86,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ErrorBody> handleOtherFault(Exception exception, HttpServletRequest request) {
-        // A violation can also come in another wrapper, for example at flush or commit (P5). The cause chain tells.
+        // A violation can also come in another wrapper, for example at flush or commit. The cause chain tells.
         if (ConstraintNames.of(exception) != null) {
             return constraintResponse(exception, request);
         }
@@ -115,7 +115,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         String field = null;
         String code = codeFor(exception, status);
         if (exception instanceof TypeMismatchException mismatch) {
-            // For example GET /api/boards/abc/tasks: the path value is not a number (P3).
+            // For example GET /api/boards/abc/tasks: the path value is not a number.
             code = "VALIDATION_FAILED";
             field = mismatch.getPropertyName();
         }

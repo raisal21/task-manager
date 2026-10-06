@@ -33,7 +33,7 @@ async function readHttpError(response: Response): Promise<ApiError> {
     body = undefined;
   }
   const fields = isRecord(body) ? body : {};
-  // The RFC 9457 body has detail, code, and field. The default Spring Boot body (until tkt_06) has error.
+  // The RFC 9457 body has detail, code, and field. Other bodies fall back to message, error, or title.
   const detail =
     asString(fields.detail) ??
     asString(fields.message) ??

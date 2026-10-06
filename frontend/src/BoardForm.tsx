@@ -22,7 +22,7 @@ export default function BoardForm({ onAdded }: BoardFormProps) {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<FormMessage | null>(null);
-  // The pending guard (P2). A ref changes at once. The saving state changes only after the next render.
+  // The pending guard. A ref changes at once. The saving state changes only after the next render.
   // The handler checks the ref, so a fast second submit cannot start a second POST.
   const pending = useRef(false);
 

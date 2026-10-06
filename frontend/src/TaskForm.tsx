@@ -37,7 +37,7 @@ export default function TaskForm({ boardId, onAdded }: TaskFormProps) {
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [messages, setMessages] = useState<FormMessages>({});
-  // The pending guard (P2). A ref changes at once. The saving state changes only after the next render.
+  // The pending guard. A ref changes at once. The saving state changes only after the next render.
   const pending = useRef(false);
   const titleInput = useRef<HTMLInputElement>(null);
 

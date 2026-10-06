@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * The body of PATCH /api/tasks/{taskId}: a JSON object with one field, status (A7).
  * Spring Boot switches off FAIL_ON_UNKNOWN_PROPERTIES for all requests, so that Jackson does not reject other
- * fields. This class collects them, and TaskRules.statusChange rejects them (P10). A body that is not an object
+ * fields. This class collects them, and TaskRules.statusChange rejects them. A body that is not an object
  * or is not JSON never gets here: Jackson rejects it, and the error handler sends MALFORMED_REQUEST.
  */
 public class UpdateTaskRequest {

@@ -21,7 +21,7 @@ It has two isolated services in one Git repository. They send data to each other
 | Full test commands | [backend/README.md](backend/README.md), "Test", and [frontend/README.md](frontend/README.md), "Checks (the full test commands)" |
 | API contract with an error example | [backend/API.md](backend/API.md) |
 | Schema: tables, columns, keys, constraints, and indexes | [backend/SCHEMA.md](backend/SCHEMA.md) |
-| Selected stack and the reasons | [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md) |
+| Selected stack and the reasons | [backend/README.md](backend/README.md) ("Stack choice" and "Selected stack and reasons") and [frontend/README.md](frontend/README.md) |
 | Rejected schema alternative | [backend/README.md](backend/README.md), "Schema creation", and [backend/SCHEMA.md](backend/SCHEMA.md) |
 | Assumptions A1 to A18 | "Assumptions" below |
 | Trade-offs and work that is not complete | "Known limitations" and "Future work" below, and the limits in each service README |
@@ -31,8 +31,8 @@ It has two isolated services in one Git repository. They send data to each other
 Use three terminals, in a clone of this repository. You need Docker, JDK 17 or newer, and Node.js 20.19+ or 22.12+ (see the service READMEs for the versions that were tested).
 
 ```bash
-# 1. The database, on 127.0.0.1:5432
-docker compose up -d db
+# 1. The database, on 127.0.0.1:5432 (returns when PostgreSQL is healthy)
+docker compose up -d --wait db
 
 # 2. The backend, on http://localhost:8080
 cd backend && ./mvnw spring-boot:run
@@ -50,14 +50,15 @@ Open `http://localhost:5173`. Stop the services with `Ctrl+C`, and the database 
 | `backend/` | `./mvnw verify` | The unit tests and the integration tests with PostgreSQL in Testcontainers (needs Docker). `./mvnw test` runs only the unit tests and needs no Docker. |
 | `frontend/` | `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm run build` | The quality checks. There are no automated frontend tests. |
 
-## Independence checks
+## Self-checks
 
-Each service operates when the other service is stopped.
+Each service operates when the other service is stopped, and the data survives a backend restart.
 
 | Check | Procedure | Correct result |
 | --- | --- | --- |
 | Backend alone | Stop the frontend. Do `curl -i http://localhost:8080/api/boards`. | 200 and a JSON array |
 | Frontend alone | Stop the backend. Open `http://localhost:5173` in a browser. | The page loads and shows "Cannot reach the server at http://localhost:8080. …" with a Retry button. It is not empty. |
+| Persistence | Add a board (`curl -H 'Content-Type: application/json' -d '{"name":"Kept"}' http://localhost:8080/api/boards`). Stop the backend and start it again. Do `curl http://localhost:8080/api/boards`. | The board is still listed. The data is in PostgreSQL (a Docker volume), not in the backend. |
 
 ## Assumptions
 

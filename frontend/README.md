@@ -1,11 +1,12 @@
 # Task Manager: frontend
 
-The React user interface of the Task Manager. It talks to the backend only through HTTP.
+The React user interface of the Task Manager. It talks to the backend only through HTTP. Assumption IDs (A3, A14, A17) are defined in the [root README](../README.md#assumptions).
 
 ## Prerequisites
 
 - Node.js `^20.19.0 || >=22.12.0` (the engine range of Vite 8.3.2) and npm. Tested with Node 24.12.0 and npm 11.6.2.
-- The backend is not necessary to start the frontend. With the backend stopped, the page loads and shows an error message.
+- The backend is not necessary to start the frontend. With the backend stopped, the page loads and shows an error message. To have data, start the backend as [../backend/README.md](../backend/README.md) says.
+- Free port 5173.
 
 ## Start
 

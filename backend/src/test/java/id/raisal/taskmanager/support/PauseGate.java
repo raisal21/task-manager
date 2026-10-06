@@ -7,7 +7,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A pause point for race tests (section 7.10). Test sources only: the production code has no test gate.
+ * A pause point for race tests. Test sources only: the production code has no test gate.
  * A repository wrapper calls reached() after a method returns. If the gate is armed for that method,
  * the calling thread stops there until the test calls release(). All waits have a time limit, and there are no sleeps.
  */

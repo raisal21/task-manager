@@ -7,17 +7,20 @@ The Spring Boot service of the Task Manager. It keeps boards and tasks in Postgr
 | [API.md](API.md) | Each endpoint with a request, a success, and an error, and the one error body |
 | [SCHEMA.md](SCHEMA.md) | The tables, the columns, the constraints, the indexes, and the reasons |
 
+Assumption IDs (A1 to A18) are defined in the [root README](../README.md#assumptions).
+
 ## Prerequisites
 
 - JDK 17 or newer. The build uses Java release 17 (`<java.version>17</java.version>`), also on a newer JDK.
 - No Maven installation is necessary. The Maven wrapper (`./mvnw`) downloads Maven 3.9.16 on first use.
-- Docker, for the local database (`docker compose`) and for the integration tests (Testcontainers).
+- Docker with Compose v2 (`docker compose version` must work) and a running Docker engine. It supplies PostgreSQL 18 (`postgres:18`) for the local database and for the integration tests (Testcontainers).
+- Free ports: 5432 (the database) and 8080 (the backend).
 - Internet access on first use, to download Maven, the dependencies, and the `postgres:18` image.
 
 ## Start
 
-1. Start the database from the repository root: `docker compose up -d db`.
-2. Start the backend in this folder: `./mvnw spring-boot:run`.
+1. Start the database from the repository root: `docker compose up -d --wait db` (it returns when PostgreSQL is healthy).
+2. Start the backend in this folder: `./mvnw spring-boot:run`. On Windows, use `mvnw.cmd` instead of `./mvnw` (not tested on Windows).
 
 The backend listens on `http://localhost:8080`. Check it with `curl -i http://localhost:8080/api/boards`. It makes the schema itself at startup (see "Schema creation").
 
@@ -34,7 +37,7 @@ The default credentials are for local development only. The compose service bind
 
 ## Schema creation
 
-Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` when the backend starts. An empty database gets the full schema (`V1`, `V2`, `V3`) with no manual step. Hibernate is set to `ddl-auto=validate`: it only checks that the entities match the schema and never changes it. [SCHEMA.md](SCHEMA.md) gives the tables and the reasons.
+Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` when the backend starts. An empty database gets the full schema (`V1`, `V2`, `V3`) with no manual step. To start again from an empty database, run `docker compose down -v` in the repository root (this deletes the data in the compose database), then step 1 of "Start". Hibernate is set to `ddl-auto=validate`: it only checks that the entities match the schema and never changes it. [SCHEMA.md](SCHEMA.md) gives the tables and the reasons.
 
 Schema alternative that was examined and rejected: the task status is a `VARCHAR(20)` with a `CHECK`, not a lookup table or a PostgreSQL `ENUM`. Three fixed values do not need a join, and the `CHECK` shows the rule in the table definition. [SCHEMA.md](SCHEMA.md) gives more rejected alternatives.
 
@@ -44,6 +47,8 @@ Schema alternative that was examined and rejected: the task status is a `VARCHAR
 | --- | --- | --- |
 | `./mvnw test` | Unit tests with fakes, and web slice tests | Not necessary |
 | `./mvnw verify` | The unit tests, then the integration tests (`*IT`) with a PostgreSQL 18 container from Testcontainers. This is the full suite. | Necessary |
+
+Last full run (`./mvnw verify`, Temurin 17.0.20.1, 2026-10-06): 136 unit and web slice tests and 63 integration tests, 0 failures. The same command on Temurin 21.0.12.1 gave the same counts.
 
 Surefire runs `*Test` and `*Tests`. Failsafe runs `*IT`. Each integration test context gets its own disposable container, and the tests do not use the database of `docker compose`. The race tests use a pause gate in the test sources, two committed transactions, and time limits, without sleeps.
 

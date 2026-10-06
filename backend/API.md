@@ -1,6 +1,6 @@
 # Task Manager API
 
-The REST API of the backend. It has seven endpoints and one error body.
+The REST API of the backend. It has seven endpoints and one error body. Assumption IDs such as A5 or A11 are defined in the [root README](../README.md#assumptions).
 
 | Item | Rule |
 | --- | --- |

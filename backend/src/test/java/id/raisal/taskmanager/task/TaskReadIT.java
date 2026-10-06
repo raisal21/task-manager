@@ -15,7 +15,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** ver_r10 on a real HTTP port with PostgreSQL: the list, its order, the status filter, and the errors. */
+/** The task list on a real HTTP port with PostgreSQL: the list, its order, the status filter, and the errors. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class TaskReadIT {

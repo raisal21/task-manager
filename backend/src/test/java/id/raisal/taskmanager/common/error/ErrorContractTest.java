@@ -88,7 +88,7 @@ class ErrorContractTest {
 
     @Test
     void wrongPathTypeUsesErrorShape() throws Exception {
-        // P3: the path has a variable, so that this is a real path type error. M1 had no such path.
+        // The path has a variable, so that this is a real path type error.
         ResultActions result = mvc.perform(get("/api/boards/abc/tasks"));
 
         assertErrorShape(result, 400, "VALIDATION_FAILED", "/api/boards/abc/tasks")

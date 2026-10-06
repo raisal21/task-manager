@@ -13,7 +13,7 @@ export type StateMessageProps =
   | { state: "validation"; text: string; id?: string };
 
 /**
- * All state texts of the UI (R25, section 7.7 of the plan) are in this file. A text says only what the
+ * All state texts of the UI (R25) are in this file. A text says only what the
  * browser knows: what the server sent, or that it did not answer.
  */
 export default function StateMessage(props: StateMessageProps) {
@@ -61,7 +61,7 @@ function emptyText(props: { what: "boards" | "tasks"; status?: TaskStatus }): st
     : `No tasks with the status ${STATUS_LABELS[props.status]}.`;
 }
 
-/** A read that got an error. Without an answer, the URL or the CORS setting can be the cause (section 7.7). */
+/** A read that got an error. Without an answer, the URL or the CORS setting can be the cause. */
 function readErrorText(error: ApiError): string {
   switch (error.kind) {
     case "network":

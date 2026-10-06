@@ -27,7 +27,7 @@ public class TaskService {
     }
 
     /**
-     * One write transaction: the board lookup, the rule functions, and the new row (P5).
+     * One write transaction: the board lookup, the rule functions, and the new row.
      * The sequence of the errors is: the board (404), then the fields (400) (A11).
      */
     @Transactional
@@ -50,7 +50,7 @@ public class TaskService {
     }
 
     /**
-     * A read-only transaction: the board lookup and the list. The status filter is a service rule (dec_10),
+     * A read-only transaction: the board lookup and the list. The status filter is a service rule,
      * so that a unit test can examine it with a fake. The status comes in as a string and TaskStatus.parse checks it.
      * The sequence of the errors is the same as for the add: the board (404), then the status (400).
      */
@@ -66,7 +66,7 @@ public class TaskService {
     }
 
     /**
-     * One write transaction: the task lookup, the rule functions, and the change (P5). The task is a managed entity,
+     * One write transaction: the task lookup, the rule functions, and the change. The task is a managed entity,
      * so that the UPDATE goes to the database when the transaction ends. The sequence of the errors is: the task (404),
      * then the body fields (400). All status changes are permitted (A4). If the status is the same, nothing changes,
      * also not updated_at (A18).
