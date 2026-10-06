@@ -17,6 +17,9 @@ export default function TaskTable({ tasks, onChanged }: TaskTableProps) {
             <th scope="col">Status</th>
             <th scope="col">Created</th>
             <th scope="col">Updated</th>
+            <th scope="col">
+              <span className="visually-hidden">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody>

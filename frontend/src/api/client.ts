@@ -57,6 +57,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     if (!response.ok) {
       throw await readHttpError(response);
     }
+    if (response.status === 204) {
+      // No content, for example after a DELETE. The caller types such a request as Promise<void>.
+      return undefined as T;
+    }
     return (await response.json()) as T;
   } catch (error) {
     throw toApiError(error);
@@ -93,4 +97,8 @@ export function changeTaskStatus(taskId: number, status: TaskStatus): Promise<Ta
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
+}
+
+export function deleteTask(taskId: number): Promise<void> {
+  return request<void>(`/api/tasks/${taskId}`, { method: "DELETE" });
 }

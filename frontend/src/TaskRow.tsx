@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent } from "react";
-import { changeTaskStatus, toApiError } from "./api/client";
+import { changeTaskStatus, deleteTask, toApiError } from "./api/client";
 import type { Task, TaskStatus } from "./api/types";
 import { writeErrorText } from "./errorText";
 import { formatDateTime } from "./format";
@@ -37,6 +37,28 @@ export default function TaskRow({ task, onChanged }: TaskRowProps) {
     }
   }
 
+  async function handleDelete() {
+    if (pending.current) {
+      return;
+    }
+    if (!window.confirm(`Delete the task "${task.title}"? This cannot be undone.`)) {
+      return;
+    }
+    pending.current = true;
+    setWriting(true);
+    setError(null);
+    try {
+      await deleteTask(task.id);
+    } catch (failure) {
+      setError(writeErrorText(toApiError(failure), "delete"));
+      pending.current = false;
+      setWriting(false);
+      return;
+    }
+    // The task is deleted. The controls stay disabled until the list reads again and this row goes away.
+    onChanged();
+  }
+
   return (
     <>
       <tr>
@@ -64,10 +86,21 @@ export default function TaskRow({ task, onChanged }: TaskRowProps) {
         <td>
           <time dateTime={task.updatedAt}>{formatDateTime(task.updatedAt)}</time>
         </td>
+        <td>
+          <button
+            type="button"
+            className="button-danger"
+            aria-label={`Delete ${task.title}`}
+            disabled={writing}
+            onClick={() => void handleDelete()}
+          >
+            Delete
+          </button>
+        </td>
       </tr>
       {error !== null && (
         <tr className="row-error">
-          <td colSpan={5}>
+          <td colSpan={6}>
             <p role="alert" className="message message-error">
               {error}
             </p>

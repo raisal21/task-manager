@@ -65,14 +65,15 @@ The lockfile `package-lock.json` has the full dependency tree.
 
 ## Functions
 
-| Function                  | How it works                                                                                                                                                                                                                                                                            |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Show boards               | `BoardList` reads `GET /api/boards`. The button "Reload" reads the list again.                                                                                                                                                                                                          |
-| Select a board            | A click on a board name selects it. The selected board has `aria-current="true"`. `App` keeps the selected board ID.                                                                                                                                                                    |
-| Add a board               | `BoardForm` below the list. The browser rejects an empty name or a name with only spaces ("Name is required."). The backend rules (100 characters) show their message near the input.                                                                                                   |
-| Show the tasks of a board | `TaskPanel` shows a table with the columns Title, Description, Status, Created, and Updated, for the selected board. A board change shows the tasks of the new board. Times are in local time (the API sends UTC). The button "Reload" reads the tasks again.                           |
-| Add a task                | `TaskForm` above the table: a title (necessary) and a description (optional). The browser rejects an empty title or a title with only spaces. A 400 response shows its message near the field that it names. After 201, the task list is read again.                                    |
-| Change the status         | Each row has a select with "To Do", "In Progress", and "Done". A change sends `PATCH /api/tasks/{id}`. The select keeps the last status from the server until the answer comes, and then the list reads again. On an error, the row keeps its status and shows the error text under it. |
+| Function                  | How it works                                                                                                                                                                                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Show boards               | `BoardList` reads `GET /api/boards`. The button "Reload" reads the list again.                                                                                                                                                                                                              |
+| Select a board            | A click on a board name selects it. The selected board has `aria-current="true"`. `App` keeps the selected board ID.                                                                                                                                                                        |
+| Add a board               | `BoardForm` below the list. The browser rejects an empty name or a name with only spaces ("Name is required."). The backend rules (100 characters) show their message near the input.                                                                                                       |
+| Show the tasks of a board | `TaskPanel` shows a table with the columns Title, Description, Status, Created, and Updated, for the selected board. A board change shows the tasks of the new board. Times are in local time (the API sends UTC). The button "Reload" reads the tasks again.                               |
+| Add a task                | `TaskForm` above the table: a title (necessary) and a description (optional). The browser rejects an empty title or a title with only spaces. A 400 response shows its message near the field that it names. After 201, the task list is read again.                                        |
+| Change the status         | Each row has a select with "To Do", "In Progress", and "Done". A change sends `PATCH /api/tasks/{id}`. The select keeps the last status from the server until the answer comes, and then the list reads again. On an error, the row keeps its status and shows the error text under it.     |
+| Delete a task             | Each row has a "Delete" button. The browser asks for a confirmation (`window.confirm`) with the task title. After a confirmed delete, the controls of the row stay disabled until the list reads again and the row goes away. On an error, the row stays and shows the error text under it. |
 
 Both forms have a local pending guard. When you submit, the button is disabled and shows "Saving…", and a second submit is ignored until the request ends. The frontend never sends a POST again by itself.
 
@@ -95,7 +96,7 @@ The frontend does not delete boards. The API has `DELETE /api/boards/{id}` for t
 
 ## Limits
 
-- The UI cannot delete a task or filter the list yet.
+- The UI cannot filter the list yet.
 - A request that the UI ignores after a board change is not cancelled in the backend. A task that you added on a board stays there, also if you changed the board before the answer came.
 - The guard of the form covers one pending request in one browser tab. It does not prevent duplicate boards from two tabs or from a second submit after an unclear result. The backend does not reject duplicate board names (A3).
 - Last write wins. The UI does not detect changes from other users or tabs. Use "Reload" to see them.
