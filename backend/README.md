@@ -47,6 +47,10 @@ Schema alternative that was examined and rejected: the task status is a `VARCHAR
 
 Surefire runs `*Test` and `*Tests`. Failsafe runs `*IT`. Each integration test context gets its own disposable container, and the tests do not use the database of `docker compose`. The race tests use a pause gate in the test sources, two committed transactions, and time limits, without sleeps.
 
+## Stack choice
+
+I chose option A of the brief: Java 17 with Spring Boot 4.1. Java 17 is the version the brief prefers and the minimum that Spring Boot 4 supports, and the framework gives the layers that the brief asks for (controller, service, repository, model) with a mature test setup. The database is PostgreSQL, the preferred one, because its foreign keys and `CHECK` constraints let the database enforce the rules of the data, and `docker compose up -d db` starts it with one command.
+
 ## Selected stack and reasons
 
 | Choice | Version | Reason |

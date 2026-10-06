@@ -40,7 +40,15 @@ Response `200`:
 [{"id":1,"name":"Sprint 1","createdAt":"2026-10-06T09:27:16.907806Z"}]
 ```
 
-There is no error response in normal use. If the database is not available, the answer is the error body with 500.
+A browser request from an origin that is not in `APP_CORS_ALLOWED_ORIGINS` gets 403:
+
+```bash
+curl -i -H 'Origin: http://evil.example' http://localhost:8080/api/boards
+```
+
+```json
+{"type":"about:blank","title":"Forbidden","status":403,"detail":"The origin of the request is not allowed.","instance":"/api/boards","code":"CORS_REJECTED","field":null}
+```
 
 ### `POST /api/boards`
 
@@ -104,6 +112,10 @@ Response `200`:
 | 1 | `boardId` is not a number | 400 | `VALIDATION_FAILED` | `boardId` |
 | 2 | There is no board with this ID | 404 | `NOT_FOUND` | `null` |
 | 3 | The value of `status` is not one of the three statuses (A1) | 400 | `VALIDATION_FAILED` | `status` |
+
+```json
+{"type":"about:blank","title":"Not Found","status":404,"detail":"There is no board with ID 999999.","instance":"/api/boards/999999/tasks","code":"NOT_FOUND","field":null}
+```
 
 ### `POST /api/boards/{boardId}/tasks`
 
@@ -189,6 +201,10 @@ curl -i -X DELETE http://localhost:8080/api/tasks/1
 | The task is deleted | 204 | none |
 | `taskId` is not a number | 400 | The error body, `VALIDATION_FAILED`, field `taskId` |
 | There is no task with this ID. This is also the answer for a second delete of the same task. | 404 | The error body, `NOT_FOUND` |
+
+```json
+{"type":"about:blank","title":"Not Found","status":404,"detail":"There is no task with ID 1.","instance":"/api/tasks/1","code":"NOT_FOUND","field":null}
+```
 
 ## Errors
 

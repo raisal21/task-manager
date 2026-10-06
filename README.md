@@ -4,7 +4,7 @@ A small task manager: boards that hold tasks. A task has a title, an optional de
 
 This project is my solution to the "Mini Task Management Application" case study of a full stack developer assessment. It is a single-user application. It has no authentication, and it is not a collaborative editor.
 
-It has two isolated services in one Git repository. They send data to each other only through HTTP.
+It has two isolated services in one Git repository. They send data to each other only through HTTP. Nothing in the project needs a paid account, a credit card, or a licence key.
 
 | Folder | Service | Start | Details |
 | --- | --- | --- | --- |
