@@ -3,6 +3,7 @@ package id.raisal.taskmanager.board;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /** A fake for unit tests. It keeps boards in memory and obeys the contract of the repository interface. */
 public class InMemoryBoardRepository implements BoardRepository {
@@ -36,5 +37,10 @@ public class InMemoryBoardRepository implements BoardRepository {
         Board saved = new Board(++lastId, board.getName(), board.getCreatedAt());
         boards.add(saved);
         return saved;
+    }
+
+    @Override
+    public Optional<Board> findById(Long id) {
+        return boards.stream().filter(board -> board.getId().equals(id)).findFirst();
     }
 }

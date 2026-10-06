@@ -12,7 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import id.raisal.taskmanager.board.BoardController;
-import id.raisal.taskmanager.support.FakeBoardsConfiguration;
+import id.raisal.taskmanager.support.FakeServicesConfiguration;
+import id.raisal.taskmanager.task.TaskController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -25,8 +26,8 @@ import org.springframework.test.web.servlet.ResultActions;
  * Web slice: the error body of the controller paths. MockMvc does not do the container error dispatch
  * to /error, so the /error path has its own test in ErrorContractIT.
  */
-@WebMvcTest(BoardController.class)
-@Import(FakeBoardsConfiguration.class)
+@WebMvcTest({BoardController.class, TaskController.class})
+@Import(FakeServicesConfiguration.class)
 class ErrorContractTest {
 
     @Autowired
@@ -55,6 +56,14 @@ class ErrorContractTest {
         ResultActions result = mvc.perform(post("/api/boards").contentType(MediaType.APPLICATION_JSON));
 
         assertErrorShape(result, 400, "MALFORMED_REQUEST", "/api/boards");
+    }
+
+    @Test
+    void malformedTaskPostPrecedesBoardLookup() throws Exception {
+        // A11: malformed JSON (400) comes before the board (404). The board 99999 is not there.
+        ResultActions result = mvc.perform(post("/api/boards/99999/tasks").contentType(MediaType.APPLICATION_JSON).content("{bad"));
+
+        assertErrorShape(result, 400, "MALFORMED_REQUEST", "/api/boards/99999/tasks");
     }
 
     @Test

@@ -1,6 +1,6 @@
 # Task Manager: backend
 
-The Spring Boot service of the Task Manager. It has the board endpoints `GET /api/boards` and `POST /api/boards`, and keeps its data in PostgreSQL.
+The Spring Boot service of the Task Manager. It has the board endpoints `GET /api/boards` and `POST /api/boards`, the task endpoint `POST /api/boards/{boardId}/tasks`, and keeps its data in PostgreSQL.
 
 ## Prerequisites
 
@@ -37,7 +37,7 @@ Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` wh
 | --- | --- |
 | `V1__create_boards.sql` | The `boards` table: identity `id`, `name VARCHAR(100) NOT NULL`, `created_at TIMESTAMPTZ NOT NULL` |
 | `V2__boards_name_not_blank.sql` | The constraint `boards_name_not_blank`: `CHECK (name ~ '\S')`. The database also rejects a name with only spaces or tabs. |
-| `V3__create_tasks.sql` | The `tasks` table with the foreign key `fk_tasks_board` (`ON DELETE RESTRICT`), the checks `tasks_title_not_blank` and `tasks_status_valid`, and the index `tasks_board_id_idx`. There is no task endpoint yet. |
+| `V3__create_tasks.sql` | The `tasks` table with the foreign key `fk_tasks_board` (`ON DELETE RESTRICT`), the checks `tasks_title_not_blank` and `tasks_status_valid`, and the index `tasks_board_id_idx`. |
 
 ## API
 
@@ -105,4 +105,4 @@ Full proof on a clean clone with JDK 17 comes with the last ticket of the plan. 
 
 ## Status
 
-The backend lists and adds boards. It has no tasks yet. All failures of these endpoints use the one error body of [API.md](API.md).
+The backend lists and adds boards, and adds tasks to a board (`POST /api/boards/{boardId}/tasks`, see [API.md](API.md)). It cannot list tasks yet. All failures use the one error body of [API.md](API.md).

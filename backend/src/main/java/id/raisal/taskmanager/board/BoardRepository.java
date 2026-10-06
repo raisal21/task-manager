@@ -1,6 +1,7 @@
 package id.raisal.taskmanager.board;
 
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.repository.Repository;
 
 /** Only the methods that BoardService uses, so that a fake stays small. */
@@ -10,4 +11,6 @@ public interface BoardRepository extends Repository<Board, Long> {
     List<Board> findAllByOrderByCreatedAtAscIdAsc();
 
     Board save(Board board);
+
+    Optional<Board> findById(Long id);
 }

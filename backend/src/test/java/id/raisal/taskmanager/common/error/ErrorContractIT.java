@@ -6,32 +6,64 @@ import id.raisal.taskmanager.TestcontainersConfiguration;
 import id.raisal.taskmanager.support.TestDatabase;
 import id.raisal.taskmanager.board.Board;
 import id.raisal.taskmanager.board.BoardRepository;
+import id.raisal.taskmanager.support.PauseGate;
 import id.raisal.taskmanager.support.TestApi;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceException;
 import java.io.IOException;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.orm.jpa.EntityManagerFactoryUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** The error body on a real HTTP port, with PostgreSQL. It covers the paths that MockMvc does not use. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import({TestcontainersConfiguration.class, ErrorContractIT.Probe.class})
+@Import({TestcontainersConfiguration.class, ErrorContractIT.Probe.class, ErrorContractIT.Gates.class})
 class ErrorContractIT {
+
+    /** Race tests (section 7.10) use this gate. It is in test sources only. */
+    static final PauseGate GATE = new PauseGate();
+
+    /** Wraps the board repository, so that a test can stop the service after its board lookup. */
+    @TestConfiguration
+    static class Gates {
+
+        @Bean
+        static BeanPostProcessor pausingBoardRepository() {
+            return new BeanPostProcessor() {
+                @Override
+                public Object postProcessAfterInitialization(Object bean, String beanName) {
+                    return bean instanceof BoardRepository repository ? PauseGate.wrap(BoardRepository.class, repository, GATE) : bean;
+                }
+            };
+        }
+    }
 
     /** Test-only endpoints that cause faults on purpose. They bypass the rule functions. */
     @RestController
@@ -39,10 +71,12 @@ class ErrorContractIT {
     static class Probe {
 
         private final BoardRepository boards;
+        private final EntityManager entityManager;
         private final TransactionTemplate transaction;
 
-        Probe(BoardRepository boards, PlatformTransactionManager transactionManager) {
+        Probe(BoardRepository boards, EntityManager entityManager, PlatformTransactionManager transactionManager) {
             this.boards = boards;
+            this.entityManager = entityManager;
             this.transaction = new TransactionTemplate(transactionManager);
         }
 
@@ -54,6 +88,25 @@ class ErrorContractIT {
         @GetMapping("/boom")
         void boom() {
             throw new IllegalStateException("secret internal detail");
+        }
+
+        /**
+         * A task row with any title and status, through SQL in a transaction. TaskRules and the TaskStatus enum
+         * cannot make such a row, so that the database rejects it. The exception is translated like in a Spring Data repository.
+         */
+        @PostMapping("/task")
+        void saveTaskWithoutRules(@RequestParam long boardId, @RequestParam String status, @RequestBody String title) {
+            try {
+                transaction.executeWithoutResult(state -> entityManager
+                        .createNativeQuery("INSERT INTO tasks (board_id, title, status) VALUES (:board, :title, :status)")
+                        .setParameter("board", boardId)
+                        .setParameter("title", title)
+                        .setParameter("status", status)
+                        .executeUpdate());
+            } catch (PersistenceException exception) {
+                DataAccessException translated = EntityManagerFactoryUtils.convertJpaAccessExceptionIfPossible(exception);
+                throw translated != null ? translated : exception;
+            }
         }
 
         /** The name rule of the service is not used here, so that the database rejects the name. */
@@ -138,6 +191,60 @@ class ErrorContractIT {
         assertErrorShape(api.send(HttpMethod.PUT, "/api/boards", MediaType.APPLICATION_JSON, "{}"), 405, "METHOD_NOT_ALLOWED", "/api/boards");
         assertErrorShape(api.send(HttpMethod.POST, "/api/boards", MediaType.TEXT_PLAIN, "name=x"), 415, "UNSUPPORTED_MEDIA_TYPE", "/api/boards");
         assertErrorShape(api.postJson("/api/boards", "{\"name\":\"\"}"), 400, "VALIDATION_FAILED", "/api/boards");
+    }
+
+    @Test
+    void taskTitleConstraintUsesTitleField() {
+        long boardId = insertBoard();
+
+        TestApi.Response response = api.send(HttpMethod.POST, "/probe/task?boardId=" + boardId + "&status=TODO", MediaType.TEXT_PLAIN, "  \t");
+
+        assertErrorShape(response, 400, "VALIDATION_FAILED", "/probe/task");
+        assertThat(response.<String>json("$.field")).isEqualTo("title");
+        assertThat(response.<String>json("$.detail")).isEqualTo("Title is required.");
+        assertThat(count("tasks")).isZero();
+    }
+
+    @Test
+    void taskStatusConstraintUsesStatusField() {
+        long boardId = insertBoard();
+
+        TestApi.Response response = api.send(HttpMethod.POST, "/probe/task?boardId=" + boardId + "&status=BLOCKED", MediaType.TEXT_PLAIN, "Title");
+
+        assertErrorShape(response, 400, "VALIDATION_FAILED", "/probe/task");
+        assertThat(response.<String>json("$.field")).isEqualTo("status");
+        assertThat(response.<String>json("$.detail")).isEqualTo("Status must be TODO, IN_PROGRESS, or DONE.");
+        assertThat(count("tasks")).isZero();
+    }
+
+    @Test
+    void taskAddRaceMapsToNotFound() throws Exception {
+        // Section 7.10. The service finds the board. Then a second transaction deletes the board and commits.
+        // Then the first operation continues, and its insert breaks the foreign key.
+        long boardId = insertBoard();
+        String path = "/api/boards/" + boardId + "/tasks";
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            GATE.arm("findById");
+            Future<TestApi.Response> request = executor.submit(() -> api.postJson(path, "{\"title\":\"Race\"}"));
+
+            assertThat(GATE.awaitPaused(Duration.ofSeconds(10))).as("the service reached the pause point after the board lookup").isTrue();
+            assertThat(jdbc.sql("DELETE FROM boards WHERE id = ?").param(boardId).update()).isEqualTo(1);
+            GATE.release();
+
+            TestApi.Response response = request.get(10, TimeUnit.SECONDS);
+            assertErrorShape(response, 404, "NOT_FOUND", path);
+            assertThat(response.<String>json("$.detail")).isEqualTo("There is no board with ID " + boardId + ".");
+            assertThat(count("tasks")).isZero();
+            assertThat(count("boards")).isZero();
+        } finally {
+            GATE.release();
+            executor.shutdownNow();
+        }
+    }
+
+    private long insertBoard() {
+        return jdbc.sql("INSERT INTO boards (name) VALUES ('Board') RETURNING id").query(Long.class).single();
     }
 
     private int count(String table) {

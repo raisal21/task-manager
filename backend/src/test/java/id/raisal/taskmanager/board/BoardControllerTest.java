@@ -6,7 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import id.raisal.taskmanager.support.FakeBoardsConfiguration;
+import id.raisal.taskmanager.support.FakeServicesConfiguration;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /** Web slice: the JSON of the board endpoints. No database and no Docker. */
 @WebMvcTest(BoardController.class)
-@Import(FakeBoardsConfiguration.class)
+@Import(FakeServicesConfiguration.class)
 class BoardControllerTest {
 
     @Autowired
