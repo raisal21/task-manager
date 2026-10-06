@@ -3,6 +3,7 @@ package id.raisal.taskmanager.support;
 import com.jayway.jsonpath.JsonPath;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -25,15 +26,24 @@ public final class TestApi {
     }
 
     public Response get(String path) {
-        return send(HttpMethod.GET, path, null, null);
+        return send(HttpMethod.GET, path, null, null, Map.of());
+    }
+
+    public Response get(String path, Map<String, String> headers) {
+        return send(HttpMethod.GET, path, null, null, headers);
     }
 
     public Response postJson(String path, String json) {
-        return send(HttpMethod.POST, path, MediaType.APPLICATION_JSON, json);
+        return send(HttpMethod.POST, path, MediaType.APPLICATION_JSON, json, Map.of());
     }
 
     public Response send(HttpMethod method, String path, MediaType contentType, String body) {
+        return send(method, path, contentType, body, Map.of());
+    }
+
+    public Response send(HttpMethod method, String path, MediaType contentType, String body, Map<String, String> headers) {
         RestClient.RequestBodySpec request = client.method(method).uri(path);
+        headers.forEach(request::header);
         if (contentType != null) {
             request.contentType(contentType);
         }

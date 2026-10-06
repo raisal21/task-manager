@@ -1,27 +1,35 @@
 package id.raisal.taskmanager.common.config;
 
+import id.raisal.taskmanager.common.error.ErrorWriter;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
-/** Lets the browser frontend call the API from its own origin (R18, A15). */
+/**
+ * Lets the browser frontend call the API from its own origin (R18, A15).
+ * It is a servlet filter, so that also a rejected origin gets the one error body.
+ */
 @Configuration
-public class CorsConfig implements WebMvcConfigurer {
+public class CorsConfig {
 
-    private final String[] allowedOrigins;
+    /** allowedOrigins is a comma-separated list. It comes from APP_CORS_ALLOWED_ORIGINS, see application.properties. */
+    @Bean
+    CorsFilter corsFilter(@Value("${app.cors.allowed-origins}") String[] allowedOrigins, ErrorWriter errors) {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of(allowedOrigins));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setMaxAge(3600L);
 
-    /** A comma-separated list. It comes from APP_CORS_ALLOWED_ORIGINS, see application.properties. */
-    public CorsConfig(@Value("${app.cors.allowed-origins}") String[] allowedOrigins) {
-        this.allowedOrigins = allowedOrigins;
-    }
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration);
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-                .allowedOrigins(allowedOrigins)
-                .allowedMethods("GET", "POST", "PATCH", "DELETE")
-                .allowedHeaders("*")
-                .maxAge(3600);
+        CorsFilter filter = new CorsFilter(source);
+        filter.setCorsProcessor(new ProblemDetailCorsProcessor(errors));
+        return filter;
     }
 }

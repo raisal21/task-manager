@@ -50,7 +50,7 @@ curl -i http://localhost:8080/api/boards
 [{"id":1,"name":"Sprint 1","createdAt":"2026-10-06T09:27:16.907806Z"}]
 ```
 
-`createdAt` is an ISO-8601 UTC time. Failures use the default Spring Boot error body at this time.
+`createdAt` is an ISO-8601 UTC time. Failures use the error body in [API.md](API.md).
 
 ### `POST /api/boards`
 
@@ -66,15 +66,15 @@ Response `201`:
 {"id":3,"name":"Sprint 1","createdAt":"2026-10-06T09:43:17.154600Z"}
 ```
 
-A missing name, an empty name, a name with only spaces, or a name with more than 100 characters gives `400` with `Content-Type: application/problem+json`:
+A missing name, an empty name, a name with only spaces, or a name with more than 100 characters gives `400` with `Content-Type: application/problem+json`. All failures use this body. See [API.md](API.md) for the members and the codes.
 
 ```json
-{"detail":"Name is required.","instance":"/api/boards","status":400,"title":"Validation failed","code":"VALIDATION_FAILED","field":"name"}
+{"type":"about:blank","title":"Bad Request","status":400,"detail":"Name is required.","instance":"/api/boards","code":"VALIDATION_FAILED","field":"name"}
 ```
 
 ### CORS
 
-The browser frontend runs on another origin than the API. The backend answers requests from the origins in `APP_CORS_ALLOWED_ORIGINS` for the paths under `/api/` (methods GET, POST, PATCH, and DELETE). A request from any other origin gets 403. CORS does not protect the API from other clients, such as curl.
+The browser frontend runs on another origin than the API. The backend answers requests from the origins in `APP_CORS_ALLOWED_ORIGINS` for the paths under `/api/` (methods GET, POST, PATCH, and DELETE). A request from any other origin gets 403 with the error body (`CORS_REJECTED`). CORS does not protect the API from other clients, such as curl.
 
 ## Test
 
@@ -102,4 +102,4 @@ Full proof on a clean clone with JDK 17 comes with the last ticket of the plan. 
 
 ## Status
 
-The backend lists and adds boards. It has no tasks. Only a name that fails the board name rule gets the documented error body. Other failures use the default Spring Boot error body.
+The backend lists and adds boards. It has no tasks yet. All failures of these endpoints use the one error body of [API.md](API.md).

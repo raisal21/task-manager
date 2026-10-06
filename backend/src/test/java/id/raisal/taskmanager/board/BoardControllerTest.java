@@ -6,46 +6,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.Clock;
+import id.raisal.taskmanager.support.FakeBoardsConfiguration;
 import java.time.Instant;
-import java.time.ZoneOffset;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** Web slice: the JSON of the board endpoints. No database and no Docker. */
 @WebMvcTest(BoardController.class)
-@Import(BoardControllerTest.FakeBoards.class)
+@Import(FakeBoardsConfiguration.class)
 class BoardControllerTest {
-
-    @TestConfiguration
-    static class FakeBoards {
-
-        @Bean
-        InMemoryBoardRepository boardRepository() {
-            InMemoryBoardRepository repository = new InMemoryBoardRepository();
-            repository.add(new Board(7L, "Sprint 1", Instant.parse("2026-01-01T10:00:00Z")));
-            return repository;
-        }
-
-        @Bean
-        Clock clock() {
-            return Clock.fixed(Instant.parse("2026-02-03T04:05:06Z"), ZoneOffset.UTC);
-        }
-
-        @Bean
-        BoardService boardService(InMemoryBoardRepository repository, Clock clock) {
-            return new BoardService(repository, clock);
-        }
-    }
 
     @Autowired
     MockMvc mvc;
+
+    @Autowired
+    InMemoryBoardRepository repository;
+
+    @BeforeEach
+    void seedOneBoard() {
+        repository.clear();
+        repository.add(new Board(7L, "Sprint 1", Instant.parse("2026-01-01T10:00:00Z")));
+    }
 
     @Test
     void sendsBoardsAsAJsonArrayWithIdNameAndCreatedAt() throws Exception {
