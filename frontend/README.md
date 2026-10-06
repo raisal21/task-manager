@@ -50,22 +50,26 @@ The lockfile `package-lock.json` has the full dependency tree.
 
 ## Structure
 
-| Path                | Content                                                                            |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| `src/api/config.ts` | The base URL of the backend                                                        |
-| `src/api/types.ts`  | `Board`, and `ApiError` with the `kind` values `network`, `http`, and `unexpected` |
-| `src/api/client.ts` | The only HTTP client. Components do not call `fetch`.                              |
-| `src/App.tsx`       | The page layout                                                                    |
-| `src/BoardList.tsx` | The board list with its states, the selection, and the read guard                  |
-| `src/BoardForm.tsx` | The form to add a board, with the pending guard                                    |
+| Path                                                     | Content                                                                            |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `src/api/config.ts`                                      | The base URL of the backend                                                        |
+| `src/api/types.ts`                                       | `Board`, and `ApiError` with the `kind` values `network`, `http`, and `unexpected` |
+| `src/api/client.ts`                                      | The only HTTP client. Components do not call `fetch`.                              |
+| `src/App.tsx`                                            | The page layout                                                                    |
+| `src/BoardList.tsx`                                      | The board list with its states, the selection, and the read guard                  |
+| `src/BoardForm.tsx`                                      | The form to add a board, with the pending guard                                    |
+| `src/TaskPanel.tsx`                                      | The task list of the selected board, with its read guard                           |
+| `src/TaskTable.tsx`, `src/TaskRow.tsx`                   | The task table and one row                                                         |
+| `src/errorText.ts`, `src/format.ts`, `src/taskStatus.ts` | The text of a failed read, the date helper, and the status labels                  |
 
 ## Functions
 
-| Function       | How it works                                                                                                                                                                          |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Show boards    | `BoardList` reads `GET /api/boards`. The button "Reload" reads the list again.                                                                                                        |
-| Select a board | A click on a board name selects it. The selected board has `aria-current="true"`. `App` keeps the selected board ID.                                                                  |
-| Add a board    | `BoardForm` below the list. The browser rejects an empty name or a name with only spaces ("Name is required."). The backend rules (100 characters) show their message near the input. |
+| Function                  | How it works                                                                                                                                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Show boards               | `BoardList` reads `GET /api/boards`. The button "Reload" reads the list again.                                                                                                                                                                                |
+| Select a board            | A click on a board name selects it. The selected board has `aria-current="true"`. `App` keeps the selected board ID.                                                                                                                                          |
+| Add a board               | `BoardForm` below the list. The browser rejects an empty name or a name with only spaces ("Name is required."). The backend rules (100 characters) show their message near the input.                                                                         |
+| Show the tasks of a board | `TaskPanel` shows a table with the columns Title, Description, Status, Created, and Updated, for the selected board. A board change shows the tasks of the new board. Times are in local time (the API sends UTC). The button "Reload" reads the tasks again. |
 
 The form has a local pending guard. When you submit, the button is disabled and shows "Saving…", and a second submit is ignored until the request ends. The frontend never sends a POST again by itself.
 
@@ -86,6 +90,6 @@ The frontend does not delete boards. The API has `DELETE /api/boards/{id}` for t
 
 ## Limits
 
-- Tasks are not in the UI yet.
+- The UI cannot add, change, or delete tasks yet.
 - The guard of the form covers one pending request in one browser tab. It does not prevent duplicate boards from two tabs or from a second submit after an unclear result. The backend does not reject duplicate board names (A3).
 - Last write wins. The UI does not detect changes from other users or tabs. Use "Reload" to see them.

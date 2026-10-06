@@ -5,6 +5,26 @@ export interface Board {
   createdAt: string;
 }
 
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
+
+export interface Task {
+  id: number;
+  boardId: number;
+  title: string;
+  /** null when the task has no description. */
+  description: string | null;
+  status: TaskStatus;
+  /** ISO-8601 UTC times from the API. */
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewTask {
+  title: string;
+  /** An empty text is allowed. The backend stores it as null (A10). */
+  description: string;
+}
+
 /**
  * network: no response at all (backend stopped, wrong URL, or CORS). fetch gives a TypeError.
  * http: the backend sent an error response.

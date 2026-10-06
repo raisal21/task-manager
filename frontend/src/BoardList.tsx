@@ -1,28 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getBoards, toApiError } from "./api/client";
-import { API_BASE_URL } from "./api/config";
 import type { ApiError, Board } from "./api/types";
 import BoardForm from "./BoardForm";
+import { readErrorText } from "./errorText";
+import { formatDateTime } from "./format";
 
 type BoardsState =
   | { status: "loading" }
   | { status: "success"; boards: Board[] }
   | { status: "error"; error: ApiError };
-
-function errorText(error: ApiError): string {
-  switch (error.kind) {
-    case "network":
-      return `Cannot reach the server at ${API_BASE_URL}. The server may be stopped, or the URL or CORS setting may be wrong.`;
-    case "http":
-      return `The server returned an error: ${error.detail ?? `status ${error.status}`}.`;
-    default:
-      return `Something went wrong: ${error.message}.`;
-  }
-}
-
-function formatCreated(createdAt: string): string {
-  return new Date(createdAt).toLocaleString();
-}
 
 interface BoardListProps {
   selectedBoardId: number | null;
@@ -75,7 +61,7 @@ export default function BoardList({ selectedBoardId, onSelect }: BoardListProps)
       {state.status === "loading" && <output>Loading boards…</output>}
       {state.status === "error" && (
         <p role="alert" className="message message-error">
-          {errorText(state.error)}
+          {readErrorText(state.error)}
         </p>
       )}
       {state.status === "success" && state.boards.length === 0 && (
@@ -94,7 +80,7 @@ export default function BoardList({ selectedBoardId, onSelect }: BoardListProps)
                 {board.name}
               </button>
               <time className="muted" dateTime={board.createdAt}>
-                {formatCreated(board.createdAt)}
+                {formatDateTime(board.createdAt)}
               </time>
             </li>
           ))}

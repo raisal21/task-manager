@@ -1,5 +1,6 @@
 import { useState } from "react";
 import BoardList from "./BoardList";
+import TaskPanel from "./TaskPanel";
 
 export default function App() {
   // The selected board lives here, in the nearest parent of all that need it.
@@ -12,6 +13,7 @@ export default function App() {
       </header>
       <main className="app-main">
         <BoardList selectedBoardId={selectedBoardId} onSelect={setSelectedBoardId} />
+        <TaskPanel boardId={selectedBoardId} />
       </main>
     </>
   );

@@ -34,9 +34,19 @@ body {
 }
 
 .app-main {
-  max-width: 64rem;
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  max-width: 80rem;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+@media (max-width: 52rem) {
+  .app-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .panel {
@@ -175,4 +185,40 @@ input:focus-visible {
 
 .board-form .message {
   margin-top: 0.5rem;
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.925rem;
+}
+
+.task-table th,
+.task-table td {
+  padding: 0.5rem 0.6rem;
+  border-top: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.task-table thead th {
+  border-top: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.task-table .task-title {
+  font-weight: 600;
 }

@@ -1,6 +1,7 @@
 import { useRef, useState, type SubmitEvent } from "react";
 import { createBoard, toApiError } from "./api/client";
 import type { ApiError } from "./api/types";
+import { serverErrorText } from "./errorText";
 
 interface BoardFormProps {
   onAdded: () => void;
@@ -19,7 +20,7 @@ function submitErrorText(error: ApiError): string {
       // A 400 response gives the message of the error body, near the input.
       return error.status === 400
         ? (error.detail ?? "The name is not correct.")
-        : `The server returned an error: ${error.detail ?? `status ${error.status}`}.`;
+        : serverErrorText(error);
   }
 }
 
