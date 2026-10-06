@@ -7,6 +7,7 @@ import id.raisal.taskmanager.support.TestDatabase;
 import id.raisal.taskmanager.board.Board;
 import id.raisal.taskmanager.board.BoardRepository;
 import id.raisal.taskmanager.support.PauseGate;
+import id.raisal.taskmanager.task.TaskRepository;
 import id.raisal.taskmanager.support.TestApi;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.persistence.EntityManager;
@@ -50,7 +51,7 @@ class ErrorContractIT {
     /** Race tests (section 7.10) use this gate. It is in test sources only. */
     static final PauseGate GATE = new PauseGate();
 
-    /** Wraps the board repository, so that a test can stop the service after its board lookup. */
+    /** Wraps the repositories, so that a test can stop a service after one of its repository calls. */
     @TestConfiguration
     static class Gates {
 
@@ -59,7 +60,13 @@ class ErrorContractIT {
             return new BeanPostProcessor() {
                 @Override
                 public Object postProcessAfterInitialization(Object bean, String beanName) {
-                    return bean instanceof BoardRepository repository ? PauseGate.wrap(BoardRepository.class, repository, GATE) : bean;
+                    if (bean instanceof BoardRepository repository) {
+                        return PauseGate.wrap(BoardRepository.class, repository, GATE);
+                    }
+                    if (bean instanceof TaskRepository repository) {
+                        return PauseGate.wrap(TaskRepository.class, repository, GATE);
+                    }
+                    return bean;
                 }
             };
         }
@@ -237,6 +244,33 @@ class ErrorContractIT {
             assertThat(response.<String>json("$.detail")).isEqualTo("There is no board with ID " + boardId + ".");
             assertThat(count("tasks")).isZero();
             assertThat(count("boards")).isZero();
+        } finally {
+            GATE.release();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void deleteRaceMapsToBoardNotEmpty() throws Exception {
+        // Section 7.10. The service finds no task on the board. Then a second transaction adds a task and commits.
+        // Then the first operation continues, and its DELETE breaks the foreign key (ON DELETE RESTRICT).
+        long boardId = insertBoard();
+        String path = "/api/boards/" + boardId;
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            GATE.arm("existsByBoardId");
+            Future<TestApi.Response> request = executor.submit(() -> api.delete(path));
+
+            assertThat(GATE.awaitPaused(Duration.ofSeconds(10))).as("the service reached the pause point after the task check").isTrue();
+            assertThat(count("tasks")).isZero();
+            assertThat(jdbc.sql("INSERT INTO tasks (board_id, title) VALUES (?, 'Raced')").param(boardId).update()).isEqualTo(1);
+            GATE.release();
+
+            TestApi.Response response = request.get(10, TimeUnit.SECONDS);
+            assertErrorShape(response, 409, "BOARD_NOT_EMPTY", path);
+            assertThat(response.<String>json("$.detail")).isEqualTo("Board " + boardId + " has tasks. Delete its tasks first.");
+            assertThat(count("boards")).isEqualTo(1);
+            assertThat(count("tasks")).isEqualTo(1);
         } finally {
             GATE.release();
             executor.shutdownNow();

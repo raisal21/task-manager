@@ -13,6 +13,8 @@ public interface TaskRepository extends Repository<Task, Long> {
 
     Optional<Task> findById(Long id);
 
+    boolean existsByBoardId(Long boardId);
+
     /** A5: created_at from the first to the last, then id. */
     List<Task> findByBoardIdOrderByCreatedAtAscIdAsc(Long boardId);
 

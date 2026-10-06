@@ -1,6 +1,6 @@
 # Task Manager: backend
 
-The Spring Boot service of the Task Manager. It has the board endpoints `GET /api/boards` and `POST /api/boards`, the task endpoints `GET` and `POST /api/boards/{boardId}/tasks` `PATCH /api/tasks/{taskId}`, and `DELETE /api/tasks/{taskId}`, and keeps its data in PostgreSQL.
+The Spring Boot service of the Task Manager. It has the board endpoints (`GET`, `POST`, and `DELETE`), the task endpoints (`GET` and `POST` for a board, `PATCH` and `DELETE` for a task), and keeps its data in PostgreSQL. See [API.md](API.md).
 
 ## Prerequisites
 
@@ -105,4 +105,4 @@ Full proof on a clean clone with JDK 17 comes with the last ticket of the plan. 
 
 ## Status
 
-The backend lists and adds boards, and lists and adds the tasks of a board (see [API.md](API.md)). It changes the status of a task (`PATCH /api/tasks/{taskId}`) and deletes a task (`DELETE /api/tasks/{taskId}`). It cannot delete a board yet. All failures use the one error body of [API.md](API.md).
+The backend lists and adds boards, and lists and adds the tasks of a board (see [API.md](API.md)). It changes the status of a task (`PATCH /api/tasks/{taskId}`) and deletes a task (`DELETE /api/tasks/{taskId}`). It deletes a board only if the board has no tasks (`DELETE /api/boards/{boardId}`, otherwise 409). All failures use the one error body of [API.md](API.md).

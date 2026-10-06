@@ -111,6 +111,27 @@ curl -i -X DELETE http://localhost:8080/api/tasks/1
 | `taskId` is not a number | 400 | The error body, `VALIDATION_FAILED`, field `taskId` |
 | There is no task with this ID. This is also the answer for a second delete of the same task. | 404 | The error body, `NOT_FOUND` |
 
+### `DELETE /api/boards/{boardId}`
+
+Deletes a board that has no tasks. A board with tasks is not deleted (A2). Delete its tasks first. The UI has no board delete (A13).
+
+```bash
+curl -i -X DELETE http://localhost:8080/api/boards/2
+```
+
+| Result | Status | Body |
+| --- | --- | --- |
+| The board has no tasks and is deleted | 204 | none |
+| The board has one or more tasks, in any status | 409 | The error body, `BOARD_NOT_EMPTY`. The board and its tasks stay. |
+| `boardId` is not a number | 400 | The error body, `VALIDATION_FAILED`, field `boardId` |
+| There is no board with this ID | 404 | The error body, `NOT_FOUND` |
+
+```json
+{"type":"about:blank","title":"Conflict","status":409,"detail":"Board 1 has tasks. Delete its tasks first.","instance":"/api/boards/1","code":"BOARD_NOT_EMPTY","field":null}
+```
+
+Two layers keep this rule. The service checks the tasks first. The database foreign key `fk_tasks_board` (`ON DELETE RESTRICT`) is the backstop for SQL without the API, and for a task that another request adds between the check and the delete. In that case the answer is also 409, and nothing is deleted.
+
 ## Errors
 
 All failures use one JSON body with the content type `application/problem+json` (RFC 9457 Problem Details, with the extension members `code` and `field`). This includes the failures that Spring makes before a controller starts, for example malformed JSON, an unknown path, an incorrect method, an unsupported media type, and a rejected CORS origin.
@@ -147,13 +168,14 @@ All failures use one JSON body with the content type `application/problem+json` 
 | The request body is missing or is not valid JSON | 400 | `MALFORMED_REQUEST` | `null` |
 | The origin of a browser request is not in `APP_CORS_ALLOWED_ORIGINS` | 403 | `CORS_REJECTED` | `null` |
 | There is no endpoint for the path, or there is no board or task with the ID in the path | 404 | `NOT_FOUND` | `null` |
+| A board that has tasks cannot be deleted (A2) | 409 | `BOARD_NOT_EMPTY` | `null` |
 | The HTTP method is not supported for the path. The `Allow` header lists the methods. | 405 | `METHOD_NOT_ALLOWED` | `null` |
 | The content type is not supported. The `Accept` header lists the types. | 415 | `UNSUPPORTED_MEDIA_TYPE` | `null` |
 | A database constraint with no mapping, or any other fault | 500 | `INTERNAL_ERROR` | `null` |
 
 An input failure or a domain failure never gives 500. The service writes the details of a 500 fault to its log only.
 
-New operations add their own rows to this table. The errors of the board delete are not available yet.
+New operations add their own rows to this table.
 
 ### Examples
 

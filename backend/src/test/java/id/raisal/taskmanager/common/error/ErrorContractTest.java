@@ -239,6 +239,20 @@ class ErrorContractTest {
     }
 
     @Test
+    void boardNotEmptyUsesErrorShape() throws Exception {
+        // Task 1 is on board 1.
+        assertErrorShape(mvc.perform(delete("/api/boards/1")), 409, "BOARD_NOT_EMPTY", "/api/boards/1")
+                .andExpect(jsonPath("$.field").value(nullValue()))
+                .andExpect(jsonPath("$.detail").value("Board 1 has tasks. Delete its tasks first."));
+    }
+
+    @Test
+    void wrongBoardIdTypeOnDeleteUsesErrorShape() throws Exception {
+        assertErrorShape(mvc.perform(delete("/api/boards/abc")), 400, "VALIDATION_FAILED", "/api/boards/abc")
+                .andExpect(jsonPath("$.field").value("boardId"));
+    }
+
+    @Test
     void unsupportedMethodOnATaskUsesErrorShape() throws Exception {
         ResultActions result = mvc.perform(put("/api/tasks/1").contentType(MediaType.APPLICATION_JSON).content("{}"));
 

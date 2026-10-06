@@ -50,4 +50,9 @@ public class InMemoryTaskRepository implements TaskRepository {
     public int deleteTaskById(Long id) {
         return tasks.removeIf(task -> task.getId().equals(id)) ? 1 : 0;
     }
+
+    @Override
+    public boolean existsByBoardId(Long boardId) {
+        return tasks.stream().anyMatch(task -> task.getBoardId().equals(boardId));
+    }
 }

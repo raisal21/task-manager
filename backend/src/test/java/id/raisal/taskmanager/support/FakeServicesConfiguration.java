@@ -35,8 +35,8 @@ public class FakeServicesConfiguration {
     }
 
     @Bean
-    BoardService boardService(InMemoryBoardRepository repository, Clock clock) {
-        return new BoardService(repository, clock);
+    BoardService boardService(InMemoryBoardRepository repository, InMemoryTaskRepository tasks, Clock clock) {
+        return new BoardService(repository, tasks, clock);
     }
 
     @Bean

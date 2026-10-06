@@ -43,11 +43,12 @@ Each service operates when the other service is stopped.
 
 ## Assumptions
 
-The case study gives no rule for these points. Each row is a decision of this project. The code does what the row says. A2 and A13 come with the delete operations.
+The case study gives no rule for these points. Each row is a decision of this project. The code does what the row says.
 
 | ID | Point | Assumption |
 | --- | --- | --- |
 | A1 | An unknown value in `?status=` | 400 with the error body and the field "status" |
+| A2 | The status code when a board with tasks cannot be deleted | 409 with the code `BOARD_NOT_EMPTY` |
 | A3 | Two boards with the same name | Permitted. A UNIQUE constraint is a rejected alternative. |
 | A4 | Status changes | All changes between the three statuses are permitted, also from DONE back to TODO |
 | A5 | The sequence of the items in a list | `created_at` from the first to the last, then `id` |
@@ -58,6 +59,7 @@ The case study gives no rule for these points. Each row is a decision of this pr
 | A10 | An empty description | NULL, also for a description with only spaces |
 | A11 | 404 or 400 first | Malformed JSON 400, then the board or task 404, then the fields 400 |
 | A12 | The source of the times | The service sets them from its clock. A new task uses one instant for `created_at` and `updated_at`. The database defaults are for SQL without the API. |
+| A13 | Board delete in the UI | Not in the UI. The API has it. |
 | A14 | The location of the status filter | The server, through `?status=` |
 | A15 | The CORS origin | From the configuration (`APP_CORS_ALLOWED_ORIGINS`), with the default `http://localhost:5173` |
 | A16 | The endpoint for the backend independence check | `GET /api/boards` |

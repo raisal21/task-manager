@@ -52,6 +52,55 @@ class DeleteIT {
     }
 
     @Test
+    void commitsTaskAndEmptyBoardDeletes() {
+        long withTask = insertBoard("With a task");
+        long empty = insertBoard("Empty");
+        long task = insertTask(withTask, "Task");
+
+        // R14: an empty board is deleted (204), a second delete gives 404.
+        assertThat(api.delete("/api/boards/" + empty).status()).isEqualTo(204);
+        assertThat(api.delete("/api/boards/" + empty).status()).isEqualTo(404);
+        assertThat(boardIds()).containsExactly(withTask);
+
+        // R4: a board with a task stays (409), with its task. This is the same 409 for all statuses.
+        TestApi.Response blocked = api.delete("/api/boards/" + withTask);
+        assertThat(blocked.status()).isEqualTo(409);
+        assertThat(blocked.<String>json("$.code")).isEqualTo("BOARD_NOT_EMPTY");
+        assertThat(boardIds()).containsExactly(withTask);
+        assertThat(taskIds()).containsExactly(task);
+
+        // After the last task is deleted, the board can be deleted.
+        assertThat(api.delete("/api/tasks/" + task).status()).isEqualTo(204);
+        assertThat(api.delete("/api/boards/" + withTask).status()).isEqualTo(204);
+        assertThat(boardIds()).isEmpty();
+        assertThat(taskIds()).isEmpty();
+    }
+
+    @Test
+    void blocksTheBoardDeleteForATaskInAnyStatus() {
+        long board = insertBoard("Board");
+        for (String status : new String[] {"TODO", "IN_PROGRESS", "DONE"}) {
+            jdbc.sql("INSERT INTO tasks (board_id, title, status) VALUES (?, ?, ?)").param(board).param(status).param(status).update();
+            assertThat(api.delete("/api/boards/" + board).status()).isEqualTo(409);
+            jdbc.sql("DELETE FROM tasks").update();
+        }
+        assertThat(boardIds()).containsExactly(board);
+    }
+
+    @Test
+    void sends404ForABoardIdThatIsNotInTheDatabaseAnd400ForANonNumber() {
+        assertThat(count("boards")).isZero();
+
+        TestApi.Response missing = api.delete("/api/boards/999999");
+        TestApi.Response notANumber = api.delete("/api/boards/abc");
+
+        assertThat(missing.status()).isEqualTo(404);
+        assertThat(missing.<String>json("$.detail")).isEqualTo("There is no board with ID 999999.");
+        assertThat(notANumber.status()).isEqualTo(400);
+        assertThat(notANumber.<String>json("$.field")).isEqualTo("boardId");
+    }
+
+    @Test
     void sends404ForATaskIdThatIsNotInTheDatabase() {
         assertThat(count("tasks")).isZero();
 
@@ -75,6 +124,10 @@ class DeleteIT {
 
     private long insertTask(long boardId, String title) {
         return jdbc.sql("INSERT INTO tasks (board_id, title) VALUES (?, ?) RETURNING id").param(boardId).param(title).query(Long.class).single();
+    }
+
+    private java.util.List<Long> boardIds() {
+        return jdbc.sql("SELECT id FROM boards ORDER BY id").query(Long.class).list();
     }
 
     private java.util.List<Long> taskIds() {

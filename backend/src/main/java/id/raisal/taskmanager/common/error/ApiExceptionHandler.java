@@ -28,6 +28,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * HttpMediaTypeNotSupportedException       415 UNSUPPORTED_MEDIA_TYPE (keeps the Accept header)
  * NoResourceFoundException                 404 NOT_FOUND
  * NotFoundException                        404 NOT_FOUND
+ * BoardNotEmptyException                   409 BOARD_NOT_EMPTY
  * Path or query value of a wrong type      400 VALIDATION_FAILED, field = the name of the parameter
  * Constraint boards_name_not_blank         400 VALIDATION_FAILED, field "name"
  * Constraint tasks_title_not_blank         400 VALIDATION_FAILED, field "title"
@@ -69,9 +70,14 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return respond(HttpStatus.NOT_FOUND, "NOT_FOUND", exception.getMessage(), null, request);
     }
 
+    @ExceptionHandler(BoardNotEmptyException.class)
+    ResponseEntity<ErrorBody> handleBoardNotEmpty(BoardNotEmptyException exception, HttpServletRequest request) {
+        return respond(HttpStatus.CONFLICT, "BOARD_NOT_EMPTY", exception.getMessage(), null, request);
+    }
+
     /**
      * Only the CHECK constraints have a mapping here. The foreign key fk_tasks_board means different things
-     * for different operations, so the service of each operation translates it (task add: 404).
+     * for different operations, so the service of each operation translates it (task add: 404, board delete: 409).
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     ResponseEntity<ErrorBody> handleConstraintViolation(DataIntegrityViolationException exception, HttpServletRequest request) {
@@ -92,7 +98,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         String constraint = ConstraintNames.of(exception);
         NamedConstraint named = constraint == null ? null : NAMED_CONSTRAINTS.get(constraint);
         if (named == null) {
-            log.error("Constraint violation without a mapping on {} {}", request.getMethod(), request.getRequestURI(), exception);
+            log.error("Constraint violation ({}) without a mapping on {} {}", constraint, request.getMethod(), request.getRequestURI(), exception);
             return respond(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", GENERAL_MESSAGE, null, request);
         }
         return respond(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", named.detail(), named.field(), request);

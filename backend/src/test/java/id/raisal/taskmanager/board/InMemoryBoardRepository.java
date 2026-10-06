@@ -43,4 +43,9 @@ public class InMemoryBoardRepository implements BoardRepository {
     public Optional<Board> findById(Long id) {
         return boards.stream().filter(board -> board.getId().equals(id)).findFirst();
     }
+
+    @Override
+    public int deleteBoardById(Long id) {
+        return boards.removeIf(board -> board.getId().equals(id)) ? 1 : 0;
+    }
 }

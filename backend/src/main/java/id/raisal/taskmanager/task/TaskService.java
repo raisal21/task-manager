@@ -42,7 +42,7 @@ public class TaskService {
             return tasks.save(task);
         } catch (DataIntegrityViolationException exception) {
             // Another transaction deleted the board after the lookup. For this operation, the board is not there.
-            if (BOARD_FOREIGN_KEY.equals(ConstraintNames.of(exception))) {
+            if (ConstraintNames.isForeignKeyViolation(exception, BOARD_FOREIGN_KEY)) {
                 throw new NotFoundException(noBoardMessage(boardId));
             }
             throw exception;
