@@ -6,6 +6,28 @@ The REST API of the backend. The endpoints come first, then the error contract.
 
 The boards endpoints (`GET /api/boards` and `POST /api/boards`) are in [README.md](README.md).
 
+### `GET /api/boards/{boardId}/tasks`
+
+Sends the tasks of one board as a JSON array. The tasks are in the order of `createdAt` from the first to the last, then `id` (A5). A board without tasks gives `[]`.
+
+The optional query parameter `status` keeps only the tasks with that status. The value must be `TODO`, `IN_PROGRESS`, or `DONE`, in capital letters. The server does the filter (A14).
+
+```bash
+curl -i 'http://localhost:8080/api/boards/1/tasks?status=DONE'
+```
+
+Response `200`:
+
+```json
+[{"id":2,"boardId":1,"title":"No description","description":null,"status":"DONE","createdAt":"2026-10-06T10:25:23.527488Z","updatedAt":"2026-10-06T10:25:23.527488Z"}]
+```
+
+| Order | Failure | Status | `code` | `field` |
+| --- | --- | --- | --- | --- |
+| 1 | `boardId` is not a number | 400 | `VALIDATION_FAILED` | `boardId` |
+| 2 | There is no board with this ID | 404 | `NOT_FOUND` | `null` |
+| 3 | The value of `status` is not one of the three statuses (A1) | 400 | `VALIDATION_FAILED` | `status` |
+
 ### `POST /api/boards/{boardId}/tasks`
 
 Adds a task to a board. The body is a JSON object with `title` and an optional `description`.

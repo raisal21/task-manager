@@ -6,6 +6,7 @@ import id.raisal.taskmanager.common.error.NotFoundException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,22 @@ public class TaskService {
             }
             throw exception;
         }
+    }
+
+    /**
+     * A read-only transaction: the board lookup and the list. The status filter is a service rule (dec_10),
+     * so that a unit test can examine it with a fake. The status comes in as a string and TaskStatus.parse checks it.
+     * The sequence of the errors is the same as for the add: the board (404), then the status (400).
+     */
+    @Transactional(readOnly = true)
+    public List<Task> listTasks(long boardId, String statusFilter) {
+        requireBoard(boardId);
+        TaskStatus status = statusFilter == null ? null : TaskStatus.parse(statusFilter);
+        List<Task> boardTasks = tasks.findByBoardIdOrderByCreatedAtAscIdAsc(boardId);
+        if (status == null) {
+            return boardTasks;
+        }
+        return boardTasks.stream().filter(task -> task.getStatus() == status).toList();
     }
 
     private void requireBoard(long boardId) {

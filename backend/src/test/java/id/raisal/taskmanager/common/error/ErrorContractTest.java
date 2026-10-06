@@ -59,6 +59,23 @@ class ErrorContractTest {
     }
 
     @Test
+    void wrongPathTypeUsesErrorShape() throws Exception {
+        // P3: the path has a variable, so that this is a real path type error. M1 had no such path.
+        ResultActions result = mvc.perform(get("/api/boards/abc/tasks"));
+
+        assertErrorShape(result, 400, "VALIDATION_FAILED", "/api/boards/abc/tasks")
+                .andExpect(jsonPath("$.field").value("boardId"))
+                .andExpect(jsonPath("$.detail").value("The value of 'boardId' is not correct."));
+    }
+
+    @Test
+    void wrongPathTypeOnPostUsesTheSameErrorShape() throws Exception {
+        ResultActions result = mvc.perform(post("/api/boards/abc/tasks").contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"x\"}"));
+
+        assertErrorShape(result, 400, "VALIDATION_FAILED", "/api/boards/abc/tasks").andExpect(jsonPath("$.field").value("boardId"));
+    }
+
+    @Test
     void malformedTaskPostPrecedesBoardLookup() throws Exception {
         // A11: malformed JSON (400) comes before the board (404). The board 99999 is not there.
         ResultActions result = mvc.perform(post("/api/boards/99999/tasks").contentType(MediaType.APPLICATION_JSON).content("{bad"));

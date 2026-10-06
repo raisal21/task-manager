@@ -12,6 +12,7 @@ import java.time.ZoneId;
 import java.util.concurrent.atomic.AtomicLong;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -126,6 +127,78 @@ class TaskServiceTest {
     @ValueSource(strings = {"   ", "\t", " \t\n "})
     void keepsBlankDescriptionAsNull(String description) {
         assertThat(service.addTask(BOARD_ID, "Title", description).getDescription()).isNull();
+    }
+
+    // --- listTasks ---
+
+    private static final Instant EARLY = Instant.parse("2026-01-01T10:00:00Z");
+    private static final Instant LATE = Instant.parse("2026-01-01T11:00:00Z");
+
+    private void addStoredTask(long id, long boardId, String title, TaskStatus status, Instant createdAt) {
+        tasks.add(new Task(id, boardId, title, null, status, createdAt, createdAt));
+    }
+
+    @Test
+    void listsOnlyTasksWithRequestedStatus() {
+        addStoredTask(1, BOARD_ID, "todo", TaskStatus.TODO, EARLY);
+        addStoredTask(2, BOARD_ID, "doing", TaskStatus.IN_PROGRESS, EARLY);
+        addStoredTask(3, BOARD_ID, "done one", TaskStatus.DONE, EARLY);
+        addStoredTask(4, BOARD_ID, "done two", TaskStatus.DONE, LATE);
+
+        assertThat(service.listTasks(BOARD_ID, "DONE")).extracting(Task::getTitle).containsExactly("done one", "done two");
+        assertThat(service.listTasks(BOARD_ID, "IN_PROGRESS")).extracting(Task::getTitle).containsExactly("doing");
+    }
+
+    @Test
+    void listsAllTasksWithoutStatusFilter() {
+        addStoredTask(1, BOARD_ID, "todo", TaskStatus.TODO, EARLY);
+        addStoredTask(2, BOARD_ID, "done", TaskStatus.DONE, LATE);
+
+        assertThat(service.listTasks(BOARD_ID, null)).extracting(Task::getTitle).containsExactly("todo", "done");
+    }
+
+    @Test
+    void returnsEmptyListForBoardWithoutTasks() {
+        assertThat(service.listTasks(BOARD_ID, null)).isEmpty();
+        assertThat(service.listTasks(BOARD_ID, "DONE")).isEmpty();
+    }
+
+    @Test
+    void listsOnlyTheTasksOfTheRequestedBoard() {
+        boards.add(new Board(2L, "Other board", EARLY));
+        addStoredTask(1, BOARD_ID, "mine", TaskStatus.TODO, EARLY);
+        addStoredTask(2, 2L, "other", TaskStatus.TODO, EARLY);
+
+        assertThat(service.listTasks(BOARD_ID, null)).extracting(Task::getTitle).containsExactly("mine");
+    }
+
+    @Test
+    void rejectsListForMissingBoard() {
+        assertThatThrownBy(() -> service.listTasks(MISSING_BOARD_ID, null))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("There is no board with ID 99.");
+    }
+
+    @Test
+    void missingBoardPrecedesStatusValidation() {
+        assertThatThrownBy(() -> service.listTasks(MISSING_BOARD_ID, "BLOCKED")).isInstanceOf(NotFoundException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"BLOCKED", "todo", ""})
+    void rejectsUnknownStatusFilter(String status) {
+        assertRejected("status", "Status must be TODO, IN_PROGRESS, or DONE.", () -> service.listTasks(BOARD_ID, status));
+    }
+
+    @Test
+    void listsTasksByCreationTimeThenId() {
+        addStoredTask(1, BOARD_ID, "late", TaskStatus.TODO, LATE);
+        addStoredTask(3, BOARD_ID, "early, second id", TaskStatus.TODO, EARLY);
+        addStoredTask(2, BOARD_ID, "early, first id", TaskStatus.TODO, EARLY);
+
+        List<Task> listed = service.listTasks(BOARD_ID, null);
+
+        assertThat(listed).extracting(Task::getTitle).containsExactly("early, first id", "early, second id", "late");
     }
 
     private void assertRejected(String field, String message, Runnable action) {
