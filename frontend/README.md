@@ -56,7 +56,19 @@ The lockfile `package-lock.json` has the full dependency tree.
 | `src/api/types.ts`  | `Board`, and `ApiError` with the `kind` values `network`, `http`, and `unexpected` |
 | `src/api/client.ts` | The only HTTP client. Components do not call `fetch`.                              |
 | `src/App.tsx`       | The page layout                                                                    |
+| `src/BoardList.tsx` | The board list with the states loading, error, empty, and list                     |
 
 ## Status
 
-The page shows the layout only. It does not show boards yet.
+The page shows the list of boards from `GET /api/boards`. It cannot add or select boards yet.
+
+States of the list:
+
+| State                                     | Text                                                                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Loading                                   | "Loading boards…"                                                                                            |
+| Backend stopped, wrong URL, or CORS fault | "Cannot reach the server at {base URL}. The server may be stopped, or the URL or CORS setting may be wrong." |
+| Error response                            | "The server returned an error: {detail}."                                                                    |
+| No boards                                 | "No boards yet. Create one to start."                                                                        |
+
+`BoardList` ignores the response of a request that is not current. Its cleanup stops the request and sets a flag, so neither a late success nor a late error changes the state.
