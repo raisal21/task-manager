@@ -4,33 +4,51 @@ A small task manager: boards that hold tasks. A task has a title, an optional de
 
 This project is my solution to the "Mini Task Management Application" case study of a full stack developer assessment. It is a single-user application. It has no authentication, and it is not a collaborative editor.
 
-## Status
+It has two isolated services in one Git repository. They send data to each other only through HTTP.
 
-The backend sends the list of boards from PostgreSQL (`GET /api/boards`). The frontend shows that list, adds boards, and selects a board. It shows an error message when the backend is not available. There are no tasks yet.
+| Folder | Service | Start | Details |
+| --- | --- | --- | --- |
+| `backend/` | Spring Boot REST API with PostgreSQL | `./mvnw spring-boot:run` | [backend/README.md](backend/README.md) |
+| `frontend/` | React user interface | `npm run dev` | [frontend/README.md](frontend/README.md) |
 
-## Layout
+## Where to find what
 
-| Folder | Content |
+| Item | Location |
 | --- | --- |
-| `backend/` | The Spring Boot REST API. See [backend/README.md](backend/README.md). |
-| `frontend/` | The React user interface. See [frontend/README.md](frontend/README.md). |
-
-The two services are isolated. Each service has its own manifest, README, and start command. They send data to each other only through HTTP.
+| Prerequisites and versions | [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md) |
+| Clean-clone setup, start commands, URLs, and ports | "Quick start" below, and each service README |
+| Schema creation from an empty database | [backend/README.md](backend/README.md), "Schema creation" |
+| Full test commands | [backend/README.md](backend/README.md), "Test", and [frontend/README.md](frontend/README.md), "Checks (the full test commands)" |
+| API contract with an error example | [backend/API.md](backend/API.md) |
+| Schema: tables, columns, keys, constraints, and indexes | [backend/SCHEMA.md](backend/SCHEMA.md) |
+| Selected stack and the reasons | [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md) |
+| Rejected schema alternative | [backend/README.md](backend/README.md), "Schema creation", and [backend/SCHEMA.md](backend/SCHEMA.md) |
+| Assumptions A1 to A18 | "Assumptions" below |
+| Trade-offs and work that is not complete | "Known limitations" and "Future work" below, and the limits in each service README |
 
 ## Quick start
 
-Use three terminals. The details and prerequisites are in the service READMEs.
+Use three terminals, in a clone of this repository. You need Docker, JDK 17 or newer, and Node.js 20.19+ or 22.12+ (see the service READMEs for the versions that were tested).
 
 ```bash
-# 1. The database (needs Docker)
+# 1. The database, on 127.0.0.1:5432
 docker compose up -d db
 
-# 2. The backend, on http://localhost:8080 (needs JDK 17 or newer)
+# 2. The backend, on http://localhost:8080
 cd backend && ./mvnw spring-boot:run
 
-# 3. The frontend, on http://localhost:5173 (needs Node.js 20.19+ or 22.12+)
+# 3. The frontend, on http://localhost:5173
 cd frontend && npm install && npm run dev
 ```
+
+Open `http://localhost:5173`. Stop the services with `Ctrl+C`, and the database with `docker compose down` (its data stays in a Docker volume).
+
+## Tests
+
+| Where | Command | Result |
+| --- | --- | --- |
+| `backend/` | `./mvnw verify` | The unit tests and the integration tests with PostgreSQL in Testcontainers (needs Docker). `./mvnw test` runs only the unit tests and needs no Docker. |
+| `frontend/` | `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm run build` | The quality checks. There are no automated frontend tests. |
 
 ## Independence checks
 
@@ -39,7 +57,7 @@ Each service operates when the other service is stopped.
 | Check | Procedure | Correct result |
 | --- | --- | --- |
 | Backend alone | Stop the frontend. Do `curl -i http://localhost:8080/api/boards`. | 200 and a JSON array |
-| Frontend alone | Stop the backend. Open `http://localhost:5173` in a browser. | The page loads and shows "Cannot reach the server at http://localhost:8080. …". It is not empty. |
+| Frontend alone | Stop the backend. Open `http://localhost:5173` in a browser. | The page loads and shows "Cannot reach the server at http://localhost:8080. …" with a Retry button. It is not empty. |
 
 ## Assumptions
 
@@ -66,26 +84,20 @@ The case study gives no rule for these points. Each row is a decision of this pr
 | A17 | More than one submit, and a POST without a response | The UI disables the button and rejects a second submit while the form request is pending. It does not send a POST again by itself. Without a response, it tells the user that the board or task can be in the database, and to reload the list before a new submit. |
 | A18 | A PATCH with the current status | `updated_at` does not change, because nothing changed |
 
-## Scope
+## Known limitations
 
-The selected scope is the core of the case study: boards, tasks, the REST API, the PostgreSQL schema, the React interface, tests, and documentation. Optional items are not part of this scope: frontend tests, a docker compose file for all processes, status counts, and an "Open" filter.
+These are limits of the current build.
 
-## Known limits
+- **Last write wins.** There is no authentication, no realtime update, and no version check. When two users or two browser tabs change the same task, the last write stays (A4, A18). The UI does not show changes of other users until you read the list again ("Reload" or "Retry").
+- **An unclear POST.** A POST that gets no answer can be in the database. The UI tells the user to reload the list before a new submit, and it never sends a POST again by itself (A17). The submit guard of a form covers one pending request in one tab. It does not prevent all duplicate writes, and the backend accepts boards with the same name (A3).
+- **Ignored requests are not cancelled.** A request that the UI ignores after a board change still reaches the backend. For example, a task that you added on a board stays there, also if you changed the board before the answer came.
+- **Small data only.** The service reads all tasks of a board and filters them by status in memory. There is no pagination, no caching, and no index on the status.
+- **Tests.** The frontend has no automated tests. The backend has unit and integration tests. The browser flows were checked by hand.
+- **Not in the selected scope.** A board delete in the UI, title and description edit, an "Open" filter, status counts, and a docker compose file for all processes.
 
-These are limits of the current build, not defects that are hidden.
+## Future work
 
-- One trusted user. There is no authentication, no realtime update, and no version check. When two users or two browser tabs change the same task, the last write wins (A4, A18). The UI does not show changes of other users until you read the list again ("Reload" or "Retry").
-- A POST that gets no answer can be in the database. The UI tells the user to reload the list before a new submit, and it never sends a POST again by itself (A17). The submit guard of a form covers one pending request in one tab. It does not prevent all duplicate writes, and the backend accepts boards with the same name (A3).
-- A request that the UI ignores after a board change is not cancelled in the backend. For example, a task that you added on a board stays there, also if you changed the board before the answer came.
-- The service reads all tasks of a board and filters them by status in memory. This is fine for a small data set. There is no pagination, no caching, and no index on the status.
-- Title and description edit, a board delete in the UI, and an "Open" filter are not in the selected scope.
-- The frontend has no automated tests (they are optional and not selected). The backend has unit and integration tests. The browser flows were checked by hand.
-
-## Stack
-
-- Backend: Java 17, Spring Boot 4.1, Maven wrapper, Spring Data JPA, Flyway.
-- Database: PostgreSQL 18, started with docker compose.
-- Frontend: React 19 with function components and hooks, TypeScript, Vite 8.3.2.
+A version check (optimistic locking) for writes from different users, a task history, title and description edit, an `Idempotency-Key` header for POST requests, and a load test. Authentication, cloud deployment, and CI are also not done.
 
 ## Conventions
 

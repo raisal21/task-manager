@@ -7,7 +7,7 @@ The REST API of the backend. It has seven endpoints and one error body.
 | Base URL | `http://localhost:8080`. The frontend gets it from `VITE_API_BASE_URL`. |
 | Format | JSON. A request with a body has the header `Content-Type: application/json`. Another content type gives 415. |
 | IDs | Numbers (`BIGINT`), sent as JSON numbers (A8) |
-| Times | ISO-8601 in UTC, with microseconds, for example `2026-10-06T09:43:17.154600Z` (A9) |
+| Times | ISO-8601 in UTC, with up to microsecond precision, for example `2026-10-06T09:43:17.154600Z`. Trailing zeros of the fraction can be missing. (A9) |
 | Lists | In the order of `createdAt` from the first to the last, then `id` (A5). There is no pagination. |
 | CORS | The backend answers browser requests from the origins in `APP_CORS_ALLOWED_ORIGINS` (default `http://localhost:5173`) for all paths under `/api/` |
 | Errors | One JSON body for all failures. See "Errors" at the end of this document. |
