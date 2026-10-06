@@ -1,35 +1,29 @@
 import { useRef, useState, type SubmitEvent } from "react";
 import { createTask, toApiError } from "./api/client";
 import type { ApiError } from "./api/types";
-import { serverErrorText } from "./errorText";
+import StateMessage from "./StateMessage";
 
 interface TaskFormProps {
   boardId: number;
   onAdded: () => void;
 }
 
-// A17: without a response, the task can be in the database. The form never sends the POST again by itself.
-const UNCERTAIN_POST_MESSAGE =
-  "The server may have saved this task. Reload the list before you send it again.";
-
 interface FormMessages {
   title?: string;
   description?: string;
-  form?: string;
+  /** A failed POST that is not about one field. The text depends on the kind of the error. */
+  form?: ApiError;
 }
 
 function messagesFor(error: ApiError): FormMessages {
-  if (error.kind === "network" || error.kind === "unexpected") {
-    return { form: UNCERTAIN_POST_MESSAGE };
-  }
   // A 400 response gives the message of the error body, near the field that it names.
-  if (error.status === 400 && error.field === "title") {
+  if (error.kind === "http" && error.status === 400 && error.field === "title") {
     return { title: error.detail };
   }
-  if (error.status === 400 && error.field === "description") {
+  if (error.kind === "http" && error.status === 400 && error.field === "description") {
     return { description: error.detail };
   }
-  return { form: serverErrorText(error) };
+  return { form: error };
 }
 
 /**
@@ -88,9 +82,7 @@ export default function TaskForm({ boardId, onAdded }: TaskFormProps) {
           autoComplete="off"
         />
         {messages.title !== undefined && (
-          <p id="task-title-message" role="alert" className="message message-error">
-            {messages.title}
-          </p>
+          <StateMessage state="validation" id="task-title-message" text={messages.title} />
         )}
       </div>
       <div className="field">
@@ -106,9 +98,11 @@ export default function TaskForm({ boardId, onAdded }: TaskFormProps) {
           }
         />
         {messages.description !== undefined && (
-          <p id="task-description-message" role="alert" className="message message-error">
-            {messages.description}
-          </p>
+          <StateMessage
+            state="validation"
+            id="task-description-message"
+            text={messages.description}
+          />
         )}
       </div>
       <div className="form-actions">
@@ -117,9 +111,7 @@ export default function TaskForm({ boardId, onAdded }: TaskFormProps) {
         </button>
       </div>
       {messages.form !== undefined && (
-        <p role="alert" className="message message-error">
-          {messages.form}
-        </p>
+        <StateMessage state="write-error" action="add task" error={messages.form} />
       )}
     </form>
   );

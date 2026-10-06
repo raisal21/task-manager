@@ -1,9 +1,8 @@
 import { useCallback, useState } from "react";
 import { getTasks } from "./api/client";
-import { readErrorText } from "./errorText";
 import { useRequest } from "./hooks/useRequest";
+import StateMessage from "./StateMessage";
 import StatusFilter, { type StatusFilterValue } from "./StatusFilter";
-import { STATUS_LABELS } from "./taskStatus";
 import TaskForm from "./TaskForm";
 import TaskTable from "./TaskTable";
 
@@ -44,18 +43,10 @@ function BoardTasks({ boardId }: { boardId: number }) {
       </div>
       <TaskForm boardId={boardId} onAdded={reload} />
       <StatusFilter value={filter} onChange={setFilter} />
-      {state.status === "loading" && <output>Loading tasks…</output>}
-      {state.status === "error" && (
-        <p role="alert" className="message message-error">
-          {readErrorText(state.error)}
-        </p>
-      )}
+      {state.status === "loading" && <StateMessage state="loading" what="tasks" />}
+      {state.status === "error" && <StateMessage state="read-error" error={state.error} />}
       {state.status === "success" && state.data.length === 0 && (
-        <p>
-          {filter === "ALL"
-            ? "No tasks yet."
-            : `No tasks with the status ${STATUS_LABELS[filter]}.`}
-        </p>
+        <StateMessage state="empty" what="tasks" status={filter === "ALL" ? undefined : filter} />
       )}
       {state.status === "success" && state.data.length > 0 && (
         <TaskTable tasks={state.data} onChanged={reload} />

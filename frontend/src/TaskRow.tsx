@@ -1,8 +1,8 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import { changeTaskStatus, deleteTask, toApiError } from "./api/client";
-import type { Task, TaskStatus } from "./api/types";
-import { writeErrorText } from "./errorText";
+import type { ApiError, Task, TaskStatus } from "./api/types";
 import { formatDateTime } from "./format";
+import StateMessage from "./StateMessage";
 import { STATUS_LABELS, TASK_STATUSES } from "./taskStatus";
 
 interface TaskRowProps {
@@ -13,7 +13,11 @@ interface TaskRowProps {
 
 export default function TaskRow({ task, onChanged }: TaskRowProps) {
   const [writing, setWriting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // The failed write (a status change or a delete). The row shows its text.
+  const [failure, setFailure] = useState<{
+    action: "status change" | "delete";
+    error: ApiError;
+  } | null>(null);
   // The write guard of this row. A ref changes at once, so that a second change cannot start a second request.
   const pending = useRef(false);
 
@@ -24,13 +28,13 @@ export default function TaskRow({ task, onChanged }: TaskRowProps) {
     }
     pending.current = true;
     setWriting(true);
-    setError(null);
+    setFailure(null);
     try {
       await changeTaskStatus(task.id, next);
       onChanged();
-    } catch (failure) {
+    } catch (error) {
       // The select is controlled by task.status. So it shows the last status from the server again.
-      setError(writeErrorText(toApiError(failure), "status change"));
+      setFailure({ action: "status change", error: toApiError(error) });
     } finally {
       pending.current = false;
       setWriting(false);
@@ -46,11 +50,11 @@ export default function TaskRow({ task, onChanged }: TaskRowProps) {
     }
     pending.current = true;
     setWriting(true);
-    setError(null);
+    setFailure(null);
     try {
       await deleteTask(task.id);
-    } catch (failure) {
-      setError(writeErrorText(toApiError(failure), "delete"));
+    } catch (error) {
+      setFailure({ action: "delete", error: toApiError(error) });
       pending.current = false;
       setWriting(false);
       return;
@@ -98,12 +102,10 @@ export default function TaskRow({ task, onChanged }: TaskRowProps) {
           </button>
         </td>
       </tr>
-      {error !== null && (
+      {failure !== null && (
         <tr className="row-error">
           <td colSpan={6}>
-            <p role="alert" className="message message-error">
-              {error}
-            </p>
+            <StateMessage state="write-error" action={failure.action} error={failure.error} />
           </td>
         </tr>
       )}

@@ -50,18 +50,19 @@ The lockfile `package-lock.json` has the full dependency tree.
 
 ## Structure
 
-| Path                                                     | Content                                                                                 |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `src/api/config.ts`                                      | The base URL of the backend                                                             |
-| `src/api/types.ts`                                       | `Board`, and `ApiError` with the `kind` values `network`, `http`, and `unexpected`      |
-| `src/api/client.ts`                                      | The only HTTP client. Components do not call `fetch`.                                   |
-| `src/App.tsx`                                            | The page layout                                                                         |
-| `src/hooks/useRequest.ts`                                | The state of one read and its read guard. The board list and the task list both use it. |
-| `src/BoardList.tsx`                                      | The board list with its states, the selection, and the read guard                       |
-| `src/BoardForm.tsx`                                      | The form to add a board, with the pending guard                                         |
-| `src/TaskPanel.tsx`                                      | The task list of the selected board, with its read guard                                |
-| `src/TaskTable.tsx`, `src/TaskRow.tsx`                   | The task table and one row                                                              |
-| `src/errorText.ts`, `src/format.ts`, `src/taskStatus.ts` | The text of a failed read, the date helper, and the status labels                       |
+| Path                                   | Content                                                                                 |
+| -------------------------------------- | --------------------------------------------------------------------------------------- |
+| `src/api/config.ts`                    | The base URL of the backend                                                             |
+| `src/api/types.ts`                     | `Board`, and `ApiError` with the `kind` values `network`, `http`, and `unexpected`      |
+| `src/api/client.ts`                    | The only HTTP client. Components do not call `fetch`.                                   |
+| `src/App.tsx`                          | The page layout                                                                         |
+| `src/hooks/useRequest.ts`              | The state of one read and its read guard. The board list and the task list both use it. |
+| `src/BoardList.tsx`                    | The board list with its states, the selection, and the read guard                       |
+| `src/BoardForm.tsx`                    | The form to add a board, with the pending guard                                         |
+| `src/TaskPanel.tsx`                    | The task list of the selected board, with its read guard                                |
+| `src/TaskTable.tsx`, `src/TaskRow.tsx` | The task table and one row                                                              |
+| `src/StateMessage.tsx`                 | All state texts of the UI: loading, empty, read error, failed write, and validation     |
+| `src/format.ts`, `src/taskStatus.ts`   | The date helper and the status labels                                                   |
 
 ## Functions
 

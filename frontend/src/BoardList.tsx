@@ -1,8 +1,8 @@
 import { getBoards } from "./api/client";
 import BoardForm from "./BoardForm";
-import { readErrorText } from "./errorText";
 import { formatDateTime } from "./format";
 import { useRequest } from "./hooks/useRequest";
+import StateMessage from "./StateMessage";
 
 interface BoardListProps {
   selectedBoardId: number | null;
@@ -20,14 +20,10 @@ export default function BoardList({ selectedBoardId, onSelect }: BoardListProps)
           Reload
         </button>
       </div>
-      {state.status === "loading" && <output>Loading boards…</output>}
-      {state.status === "error" && (
-        <p role="alert" className="message message-error">
-          {readErrorText(state.error)}
-        </p>
-      )}
+      {state.status === "loading" && <StateMessage state="loading" what="boards" />}
+      {state.status === "error" && <StateMessage state="read-error" error={state.error} />}
       {state.status === "success" && state.data.length === 0 && (
-        <p>No boards yet. Create one to start.</p>
+        <StateMessage state="empty" what="boards" />
       )}
       {state.status === "success" && state.data.length > 0 && (
         <ul className="board-list">

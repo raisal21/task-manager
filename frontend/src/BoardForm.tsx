@@ -1,33 +1,27 @@
 import { useRef, useState, type SubmitEvent } from "react";
 import { createBoard, toApiError } from "./api/client";
 import type { ApiError } from "./api/types";
-import { serverErrorText } from "./errorText";
+import StateMessage from "./StateMessage";
 
 interface BoardFormProps {
   onAdded: () => void;
 }
 
-// A17: without a response, the board can be in the database. The form never sends the POST again by itself.
-const UNCERTAIN_POST_MESSAGE =
-  "The server may have saved this board. Reload the list before you send it again.";
+/** What the form shows under the input: a validation text, or the result of a failed POST. */
+type FormMessage = { kind: "validation"; text: string } | { kind: "write-error"; error: ApiError };
 
-function submitErrorText(error: ApiError): string {
-  switch (error.kind) {
-    case "network":
-    case "unexpected":
-      return UNCERTAIN_POST_MESSAGE;
-    default:
-      // A 400 response gives the message of the error body, near the input.
-      return error.status === 400
-        ? (error.detail ?? "The name is not correct.")
-        : serverErrorText(error);
+function messageFor(error: ApiError): FormMessage {
+  // A 400 response gives the message of the error body, near the input.
+  if (error.kind === "http" && error.status === 400) {
+    return { kind: "validation", text: error.detail ?? "The name is not correct." };
   }
+  return { kind: "write-error", error };
 }
 
 export default function BoardForm({ onAdded }: BoardFormProps) {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<FormMessage | null>(null);
   // The pending guard (P2). A ref changes at once. The saving state changes only after the next render.
   // The handler checks the ref, so a fast second submit cannot start a second POST.
   const pending = useRef(false);
@@ -39,7 +33,7 @@ export default function BoardForm({ onAdded }: BoardFormProps) {
     }
     const trimmed = name.trim();
     if (trimmed === "") {
-      setMessage("Name is required.");
+      setMessage({ kind: "validation", text: "Name is required." });
       return;
     }
 
@@ -51,7 +45,8 @@ export default function BoardForm({ onAdded }: BoardFormProps) {
       setName("");
       onAdded();
     } catch (error) {
-      setMessage(submitErrorText(toApiError(error)));
+      // The input stays. The form never sends the POST again by itself (A17).
+      setMessage(messageFor(toApiError(error)));
     } finally {
       pending.current = false;
       setSaving(false);
@@ -75,10 +70,16 @@ export default function BoardForm({ onAdded }: BoardFormProps) {
           {saving ? "Saving…" : "Add board"}
         </button>
       </div>
-      {message !== null && (
-        <p id="board-name-message" role="alert" className="message message-error">
-          {message}
-        </p>
+      {message?.kind === "validation" && (
+        <StateMessage state="validation" id="board-name-message" text={message.text} />
+      )}
+      {message?.kind === "write-error" && (
+        <StateMessage
+          state="write-error"
+          id="board-name-message"
+          action="add board"
+          error={message.error}
+        />
       )}
     </form>
   );
