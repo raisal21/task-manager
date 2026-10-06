@@ -34,6 +34,7 @@ Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` wh
 | Migration | Content |
 | --- | --- |
 | `V1__create_boards.sql` | The `boards` table: identity `id`, `name VARCHAR(100) NOT NULL`, `created_at TIMESTAMPTZ NOT NULL` |
+| `V2__boards_name_not_blank.sql` | The constraint `boards_name_not_blank`: `CHECK (name ~ '\S')`. The database also rejects a name with only spaces or tabs. |
 
 ## API
 
