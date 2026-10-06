@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getTasks, toApiError } from "./api/client";
 import type { ApiError, Task } from "./api/types";
 import { readErrorText } from "./errorText";
+import TaskForm from "./TaskForm";
 import TaskTable from "./TaskTable";
 
 type TasksState =
@@ -33,8 +34,13 @@ function BoardTasks({ boardId }: { boardId: number }) {
   const [state, setState] = useState<TasksState>({ status: "loading" });
   // The read guard (P1). Only the latest read of this board can change the state.
   const latestRead = useRef<AbortController | null>(null);
+  // False after this board instance is removed. A late result of a form of this board must not start a read.
+  const active = useRef(false);
 
   const load = useCallback(() => {
+    if (!active.current) {
+      return;
+    }
     latestRead.current?.abort();
     const controller = new AbortController();
     latestRead.current = controller;
@@ -54,9 +60,11 @@ function BoardTasks({ boardId }: { boardId: number }) {
   }, [boardId]);
 
   useEffect(() => {
+    active.current = true;
     load();
     // After the cleanup, no read is current: a late response cannot change the state.
     return () => {
+      active.current = false;
       latestRead.current?.abort();
       latestRead.current = null;
     };
@@ -69,6 +77,7 @@ function BoardTasks({ boardId }: { boardId: number }) {
           Reload
         </button>
       </div>
+      <TaskForm boardId={boardId} onAdded={load} />
       {state.status === "loading" && <output>Loading tasks…</output>}
       {state.status === "error" && (
         <p role="alert" className="message message-error">

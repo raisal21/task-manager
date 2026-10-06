@@ -70,10 +70,13 @@ The lockfile `package-lock.json` has the full dependency tree.
 | Select a board            | A click on a board name selects it. The selected board has `aria-current="true"`. `App` keeps the selected board ID.                                                                                                                                          |
 | Add a board               | `BoardForm` below the list. The browser rejects an empty name or a name with only spaces ("Name is required."). The backend rules (100 characters) show their message near the input.                                                                         |
 | Show the tasks of a board | `TaskPanel` shows a table with the columns Title, Description, Status, Created, and Updated, for the selected board. A board change shows the tasks of the new board. Times are in local time (the API sends UTC). The button "Reload" reads the tasks again. |
+| Add a task                | `TaskForm` above the table: a title (necessary) and a description (optional). The browser rejects an empty title or a title with only spaces. A 400 response shows its message near the field that it names. After 201, the task list is read again.          |
 
-The form has a local pending guard. When you submit, the button is disabled and shows "Saving…", and a second submit is ignored until the request ends. The frontend never sends a POST again by itself.
+Both forms have a local pending guard. When you submit, the button is disabled and shows "Saving…", and a second submit is ignored until the request ends. The frontend never sends a POST again by itself.
 
-If a POST gets no response, the board can be in the database. The form shows "The server may have saved this board. Reload the list before you send it again." and keeps your input. Use "Reload" to see the list, then submit again if the board is not there.
+If a POST gets no response, the board or the task can be in the database. The form shows "The server may have saved this board. Reload the list before you send it again." (or the same text for a task) and keeps your input. Use "Reload" to see the list, then submit again if it is not there.
+
+The task form belongs to the selected board. A board change makes a new form for the new board, with empty fields. The request of the previous board can still end. Its result does not change the new form, and it does not start a read of the list.
 
 States of the list:
 
@@ -90,6 +93,7 @@ The frontend does not delete boards. The API has `DELETE /api/boards/{id}` for t
 
 ## Limits
 
-- The UI cannot add, change, or delete tasks yet.
+- The UI cannot change the status of a task or delete a task yet.
+- A request that the UI ignores after a board change is not cancelled in the backend. A task that you added on a board stays there, also if you changed the board before the answer came.
 - The guard of the form covers one pending request in one browser tab. It does not prevent duplicate boards from two tabs or from a second submit after an unclear result. The backend does not reject duplicate board names (A3).
 - Last write wins. The UI does not detect changes from other users or tabs. Use "Reload" to see them.
