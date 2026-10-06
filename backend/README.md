@@ -16,13 +16,14 @@ The Spring Boot service of the Task Manager. It has one endpoint, `GET /api/boar
 
 The backend listens on `http://localhost:8080`. It makes the schema itself at startup (see "Schema creation").
 
-The database settings come from environment variables. Each has a local default that matches `compose.yaml`.
+The settings come from environment variables. Each has a local default. The database defaults match `compose.yaml`.
 
 | Variable | Default |
 | --- | --- |
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/taskmanager` |
 | `SPRING_DATASOURCE_USERNAME` | `taskmanager` |
 | `SPRING_DATASOURCE_PASSWORD` | `taskmanager` |
+| `APP_CORS_ALLOWED_ORIGINS` | `http://localhost:5173` (a comma-separated list of browser origins) |
 
 The default credentials are for local development only. The compose service binds port 5432 to `127.0.0.1`.
 
@@ -49,6 +50,10 @@ curl -i http://localhost:8080/api/boards
 ```
 
 `createdAt` is an ISO-8601 UTC time. Failures use the default Spring Boot error body at this time.
+
+### CORS
+
+The browser frontend runs on another origin than the API. The backend answers requests from the origins in `APP_CORS_ALLOWED_ORIGINS` for the paths under `/api/` (methods GET, POST, PATCH, and DELETE). A request from any other origin gets 403. CORS does not protect the API from other clients, such as curl.
 
 ## Test
 
