@@ -66,3 +66,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export function getBoards(signal?: AbortSignal): Promise<Board[]> {
   return request<Board[]>("/api/boards", { signal });
 }
+
+export function createBoard(name: string): Promise<Board> {
+  return request<Board>("/api/boards", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+}

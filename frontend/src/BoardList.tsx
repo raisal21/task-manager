@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getBoards, toApiError } from "./api/client";
 import { API_BASE_URL } from "./api/config";
 import type { ApiError, Board } from "./api/types";
+import BoardForm from "./BoardForm";
 
 type BoardsState =
   | { status: "loading" }
@@ -23,38 +24,54 @@ function formatCreated(createdAt: string): string {
   return new Date(createdAt).toLocaleString();
 }
 
-export default function BoardList() {
+interface BoardListProps {
+  selectedBoardId: number | null;
+  onSelect: (boardId: number) => void;
+}
+
+export default function BoardList({ selectedBoardId, onSelect }: BoardListProps) {
   // The request starts when the component mounts, so the first state is "loading".
   const [state, setState] = useState<BoardsState>({ status: "loading" });
+  // The read guard (P1). Only the latest read can change the state. A read that is not the latest
+  // is not current: its success and its error response are both ignored.
+  const latestRead = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    // Read cleanup (P1). After the cleanup, the response of this request is not current.
-    // Neither a success nor an error response of a request that is not current can change the state.
+  const load = useCallback(() => {
+    latestRead.current?.abort();
     const controller = new AbortController();
-    let current = true;
+    latestRead.current = controller;
 
     getBoards(controller.signal).then(
       (boards) => {
-        if (current) {
+        if (latestRead.current === controller) {
           setState({ status: "success", boards });
         }
       },
       (error: unknown) => {
-        if (current) {
+        if (latestRead.current === controller) {
           setState({ status: "error", error: toApiError(error) });
         }
       },
     );
-
-    return () => {
-      current = false;
-      controller.abort();
-    };
   }, []);
+
+  useEffect(() => {
+    load();
+    // After the cleanup, no read is current: a late response cannot change the state.
+    return () => {
+      latestRead.current?.abort();
+      latestRead.current = null;
+    };
+  }, [load]);
 
   return (
     <section aria-labelledby="boards-heading" className="panel">
-      <h2 id="boards-heading">Boards</h2>
+      <div className="panel-header">
+        <h2 id="boards-heading">Boards</h2>
+        <button type="button" className="button-secondary" onClick={load}>
+          Reload
+        </button>
+      </div>
       {state.status === "loading" && <output>Loading boards…</output>}
       {state.status === "error" && (
         <p role="alert" className="message message-error">
@@ -68,7 +85,14 @@ export default function BoardList() {
         <ul className="board-list">
           {state.boards.map((board) => (
             <li key={board.id}>
-              <span className="board-name">{board.name}</span>
+              <button
+                type="button"
+                className="board-button"
+                aria-current={board.id === selectedBoardId ? "true" : undefined}
+                onClick={() => onSelect(board.id)}
+              >
+                {board.name}
+              </button>
               <time className="muted" dateTime={board.createdAt}>
                 {formatCreated(board.createdAt)}
               </time>
@@ -76,6 +100,7 @@ export default function BoardList() {
           ))}
         </ul>
       )}
+      <BoardForm onAdded={load} />
     </section>
   );
 }

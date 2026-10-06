@@ -56,11 +56,20 @@ The lockfile `package-lock.json` has the full dependency tree.
 | `src/api/types.ts`  | `Board`, and `ApiError` with the `kind` values `network`, `http`, and `unexpected` |
 | `src/api/client.ts` | The only HTTP client. Components do not call `fetch`.                              |
 | `src/App.tsx`       | The page layout                                                                    |
-| `src/BoardList.tsx` | The board list with the states loading, error, empty, and list                     |
+| `src/BoardList.tsx` | The board list with its states, the selection, and the read guard                  |
+| `src/BoardForm.tsx` | The form to add a board, with the pending guard                                    |
 
-## Status
+## Functions
 
-The page shows the list of boards from `GET /api/boards`. It cannot add or select boards yet.
+| Function       | How it works                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Show boards    | `BoardList` reads `GET /api/boards`. The button "Reload" reads the list again.                                                                                                        |
+| Select a board | A click on a board name selects it. The selected board has `aria-current="true"`. `App` keeps the selected board ID.                                                                  |
+| Add a board    | `BoardForm` below the list. The browser rejects an empty name or a name with only spaces ("Name is required."). The backend rules (100 characters) show their message near the input. |
+
+The form has a local pending guard. When you submit, the button is disabled and shows "Saving…", and a second submit is ignored until the request ends. The frontend never sends a POST again by itself.
+
+If a POST gets no response, the board can be in the database. The form shows "The server may have saved this board. Reload the list before you send it again." and keeps your input. Use "Reload" to see the list, then submit again if the board is not there.
 
 States of the list:
 
@@ -71,4 +80,12 @@ States of the list:
 | Error response                            | "The server returned an error: {detail}."                                                                    |
 | No boards                                 | "No boards yet. Create one to start."                                                                        |
 
-`BoardList` ignores the response of a request that is not current. Its cleanup stops the request and sets a flag, so neither a late success nor a late error changes the state.
+Only the latest read of the list can change the list. Each new read stops the previous read, and a response of a read that is not the latest is ignored, for a success and for an error. The same rule applies after the component unmounts.
+
+The frontend does not delete boards. The API has `DELETE /api/boards/{id}` for that (A13).
+
+## Limits
+
+- Tasks are not in the UI yet.
+- The guard of the form covers one pending request in one browser tab. It does not prevent duplicate boards from two tabs or from a second submit after an unclear result. The backend does not reject duplicate board names (A3).
+- Last write wins. The UI does not detect changes from other users or tabs. Use "Reload" to see them.

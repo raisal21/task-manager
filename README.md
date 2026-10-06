@@ -6,7 +6,7 @@ This project is my solution to the "Mini Task Management Application" case study
 
 ## Status
 
-The backend sends the list of boards from PostgreSQL (`GET /api/boards`). The frontend shows that list, or an error message when the backend is not available. Boards cannot be added yet, and there are no tasks yet.
+The backend sends the list of boards from PostgreSQL (`GET /api/boards`). The frontend shows that list, adds boards, and selects a board. It shows an error message when the backend is not available. There are no tasks yet.
 
 ## Layout
 
