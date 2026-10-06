@@ -1,7 +1,12 @@
 import type { Task } from "./api/types";
 import TaskRow from "./TaskRow";
 
-export default function TaskTable({ tasks }: { tasks: Task[] }) {
+interface TaskTableProps {
+  tasks: Task[];
+  onChanged: () => void;
+}
+
+export default function TaskTable({ tasks, onChanged }: TaskTableProps) {
   return (
     <div className="table-scroll">
       <table className="task-table">
@@ -16,7 +21,7 @@ export default function TaskTable({ tasks }: { tasks: Task[] }) {
         </thead>
         <tbody>
           {tasks.map((task) => (
-            <TaskRow key={task.id} task={task} />
+            <TaskRow key={task.id} task={task} onChanged={onChanged} />
           ))}
         </tbody>
       </table>

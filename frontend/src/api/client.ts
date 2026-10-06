@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "./config";
-import { ApiError, type Board, type NewTask, type Task } from "./types";
+import { ApiError, type Board, type NewTask, type Task, type TaskStatus } from "./types";
 
 // The only file that uses fetch. Components call the functions at the end of this file.
 
@@ -84,5 +84,13 @@ export function createTask(boardId: number, task: NewTask): Promise<Task> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(task),
+  });
+}
+
+export function changeTaskStatus(taskId: number, status: TaskStatus): Promise<Task> {
+  return request<Task>(`/api/tasks/${taskId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
   });
 }

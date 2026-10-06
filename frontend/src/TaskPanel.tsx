@@ -43,7 +43,9 @@ function BoardTasks({ boardId }: { boardId: number }) {
         </p>
       )}
       {state.status === "success" && state.data.length === 0 && <p>No tasks yet.</p>}
-      {state.status === "success" && state.data.length > 0 && <TaskTable tasks={state.data} />}
+      {state.status === "success" && state.data.length > 0 && (
+        <TaskTable tasks={state.data} onChanged={reload} />
+      )}
     </>
   );
 }
