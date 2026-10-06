@@ -2,6 +2,7 @@ package id.raisal.taskmanager.task;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -121,6 +122,26 @@ class TaskControllerTest {
     @Test
     void sends404WhenListingTheTasksOfAMissingBoard() throws Exception {
         mvc.perform(get("/api/boards/99/tasks")).andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void changesTheStatusAndSendsTheTask() throws Exception {
+        tasks.add(new Task(5L, 1L, "Write", "Details", TaskStatus.TODO, Instant.parse("2026-01-01T10:00:00Z"), Instant.parse("2026-01-01T10:00:00Z")));
+
+        mvc.perform(patch("/api/tasks/5").contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"IN_PROGRESS\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.title").value("Write"))
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.createdAt").value("2026-01-01T10:00:00Z"))
+                .andExpect(jsonPath("$.updatedAt").value("2026-02-03T04:05:06Z"));
+    }
+
+    @Test
+    void sends404WhenChangingTheStatusOfAMissingTask() throws Exception {
+        mvc.perform(patch("/api/tasks/99").contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"DONE\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     private ResultActions postTask(long boardId, String json) throws Exception {

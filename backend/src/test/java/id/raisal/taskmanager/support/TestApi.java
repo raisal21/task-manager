@@ -37,6 +37,10 @@ public final class TestApi {
         return send(HttpMethod.POST, path, MediaType.APPLICATION_JSON, json, Map.of());
     }
 
+    public Response patchJson(String path, String json) {
+        return send(HttpMethod.PATCH, path, MediaType.APPLICATION_JSON, json, Map.of());
+    }
+
     public Response send(HttpMethod method, String path, MediaType contentType, String body) {
         return send(method, path, contentType, body, Map.of());
     }

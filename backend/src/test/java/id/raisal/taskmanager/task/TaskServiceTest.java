@@ -16,6 +16,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -127,6 +128,105 @@ class TaskServiceTest {
     @ValueSource(strings = {"   ", "\t", " \t\n "})
     void keepsBlankDescriptionAsNull(String description) {
         assertThat(service.addTask(BOARD_ID, "Title", description).getDescription()).isNull();
+    }
+
+    // --- changeStatus ---
+
+    private Task storedTask(long id, TaskStatus status) {
+        Task task = new Task(id, BOARD_ID, "Title", "Details", status, EARLY, EARLY);
+        tasks.add(task);
+        return task;
+    }
+
+    @Test
+    void updatesStatusAndUpdatedAt() {
+        Task task = storedTask(1, TaskStatus.TODO);
+
+        Task changed = service.changeStatus(1, "IN_PROGRESS", List.of());
+
+        assertThat(changed).isSameAs(task);
+        assertThat(changed.getStatus()).isEqualTo(TaskStatus.IN_PROGRESS);
+        // The Clock gives updated_at. TIMESTAMPTZ keeps microseconds.
+        assertThat(changed.getUpdatedAt()).isEqualTo(NOW_IN_MICROS);
+        assertThat(changed.getCreatedAt()).isEqualTo(EARLY);
+        assertThat(changed.getTitle()).isEqualTo("Title");
+        assertThat(changed.getDescription()).isEqualTo("Details");
+        assertThat(changed.getBoardId()).isEqualTo(BOARD_ID);
+    }
+
+    @Test
+    void keepsUpdatedAtForSameStatus() {
+        storedTask(1, TaskStatus.IN_PROGRESS);
+
+        Task changed = service.changeStatus(1, "IN_PROGRESS", List.of());
+
+        // A18: nothing changed, so updated_at does not change.
+        assertThat(changed.getStatus()).isEqualTo(TaskStatus.IN_PROGRESS);
+        assertThat(changed.getUpdatedAt()).isEqualTo(EARLY);
+    }
+
+    @ParameterizedTest
+    @EnumSource(TaskStatus.class)
+    void permitsEveryStatusChange(TaskStatus from) {
+        // A4: all changes between the three statuses are permitted, also from DONE back.
+        for (TaskStatus to : TaskStatus.values()) {
+            Task task = new Task(7L, BOARD_ID, "Title", null, from, EARLY, EARLY);
+            tasks.clear();
+            tasks.add(task);
+
+            Task changed = service.changeStatus(7, to.name(), List.of());
+
+            assertThat(changed.getStatus()).isEqualTo(to);
+            assertThat(changed.getUpdatedAt()).isEqualTo(from == to ? EARLY : NOW_IN_MICROS);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"BLOCKED", "todo", "", "DONE ", "In_Progress"})
+    void rejectsInvalidStatusValue(String status) {
+        Task task = storedTask(1, TaskStatus.TODO);
+
+        assertRejected("status", "Status must be TODO, IN_PROGRESS, or DONE.", () -> service.changeStatus(1, status, List.of()));
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.TODO);
+        assertThat(task.getUpdatedAt()).isEqualTo(EARLY);
+    }
+
+    @Test
+    void rejectsMissingStatus() {
+        storedTask(1, TaskStatus.TODO);
+
+        assertRejected("status", "Status is required.", () -> service.changeStatus(1, null, List.of()));
+    }
+
+    @Test
+    void rejectsUnknownFieldsBeforeTheStatusValue() {
+        Task task = storedTask(1, TaskStatus.TODO);
+
+        assertRejected("title", "Unknown field 'title'. Only 'status' can be changed.", () -> service.changeStatus(1, "DONE", List.of("title", "other")));
+        assertRejected("title", "Unknown field 'title'. Only 'status' can be changed.", () -> service.changeStatus(1, "BLOCKED", List.of("title")));
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.TODO);
+    }
+
+    @Test
+    void shortensALongUnknownFieldName() {
+        storedTask(1, TaskStatus.TODO);
+        String longName = "n".repeat(80);
+
+        assertThatThrownBy(() -> service.changeStatus(1, "DONE", List.of(longName)))
+                .isInstanceOfSatisfying(ValidationException.class, exception -> assertThat(exception.getField()).hasSize(51));
+    }
+
+    @Test
+    void rejectsStatusUpdateOfMissingTask() {
+        assertThatThrownBy(() -> service.changeStatus(42, "DONE", List.of()))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("There is no task with ID 42.");
+    }
+
+    @Test
+    void missingTaskPrecedesBodyValidation() {
+        // The task (404) comes before the body fields (400), as for the task add (A11).
+        assertThatThrownBy(() -> service.changeStatus(42, "BLOCKED", List.of("title"))).isInstanceOf(NotFoundException.class);
     }
 
     // --- listTasks ---

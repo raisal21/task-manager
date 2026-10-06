@@ -71,4 +71,66 @@ class TaskWriteIT {
         assertThat(Instant.parse(response.json("$.createdAt"))).isEqualTo(committed.createdAt());
         assertThat(Instant.parse(response.json("$.updatedAt"))).isEqualTo(committed.updatedAt());
     }
+
+    @Test
+    void statusResponseMatchesCommittedTask() {
+        TestApi api = new TestApi(port);
+        long taskId = api.postJson("/api/boards/" + boardId + "/tasks", "{\"title\":\"Move me\",\"description\":\"Keep\"}")
+                .<Number>json("$.id")
+                .longValue();
+        Row created = readTask(taskId);
+
+        TestApi.Response changed = api.patchJson("/api/tasks/" + taskId, "{\"status\":\"IN_PROGRESS\"}");
+
+        assertThat(changed.status()).isEqualTo(200);
+        Row committed = readTask(taskId);
+        assertThat(committed.status()).isEqualTo("IN_PROGRESS");
+        assertThat(committed.title()).isEqualTo("Move me");
+        assertThat(committed.description()).isEqualTo("Keep");
+        assertThat(committed.createdAt()).isEqualTo(created.createdAt());
+        // R2: updated_at changes with the status.
+        assertThat(committed.updatedAt()).isAfter(created.updatedAt());
+        assertThat(changed.<String>json("$.status")).isEqualTo(committed.status());
+        assertThat(Instant.parse(changed.json("$.updatedAt"))).isEqualTo(committed.updatedAt());
+        assertThat(Instant.parse(changed.json("$.createdAt"))).isEqualTo(committed.createdAt());
+
+        // A18: the same status again changes nothing, also not updated_at.
+        TestApi.Response same = api.patchJson("/api/tasks/" + taskId, "{\"status\":\"IN_PROGRESS\"}");
+        assertThat(same.status()).isEqualTo(200);
+        assertThat(readTask(taskId)).isEqualTo(committed);
+        assertThat(Instant.parse(same.json("$.updatedAt"))).isEqualTo(committed.updatedAt());
+
+        // A4: a change back is also permitted.
+        TestApi.Response back = api.patchJson("/api/tasks/" + taskId, "{\"status\":\"TODO\"}");
+        assertThat(back.status()).isEqualTo(200);
+        assertThat(readTask(taskId).status()).isEqualTo("TODO");
+        assertThat(readTask(taskId).updatedAt()).isAfter(committed.updatedAt());
+    }
+
+    @Test
+    void rejectedPatchChangesNothing() {
+        TestApi api = new TestApi(port);
+        long taskId = api.postJson("/api/boards/" + boardId + "/tasks", "{\"title\":\"Stay\"}").<Number>json("$.id").longValue();
+        Row before = readTask(taskId);
+
+        assertThat(api.patchJson("/api/tasks/" + taskId, "{\"status\":\"BLOCKED\"}").status()).isEqualTo(400);
+        assertThat(api.patchJson("/api/tasks/" + taskId, "{\"status\":\"DONE\",\"title\":\"x\"}").status()).isEqualTo(400);
+        assertThat(api.patchJson("/api/tasks/" + taskId, "[]").status()).isEqualTo(400);
+
+        assertThat(readTask(taskId)).isEqualTo(before);
+    }
+
+    private Row readTask(long taskId) {
+        return jdbc.sql("SELECT id, board_id, title, description, status, created_at, updated_at FROM tasks WHERE id = ?")
+                .param(taskId)
+                .query((rs, rowNumber) -> new Row(
+                        rs.getLong("id"),
+                        rs.getLong("board_id"),
+                        rs.getString("title"),
+                        rs.getString("description"),
+                        rs.getString("status"),
+                        rs.getObject("created_at", OffsetDateTime.class).toInstant(),
+                        rs.getObject("updated_at", OffsetDateTime.class).toInstant()))
+                .single();
+    }
 }

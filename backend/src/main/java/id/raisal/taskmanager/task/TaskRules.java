@@ -1,6 +1,7 @@
 package id.raisal.taskmanager.task;
 
 import id.raisal.taskmanager.common.error.ValidationException;
+import java.util.List;
 
 /** Rule functions for tasks. They have no HTTP types and no database access. */
 public final class TaskRules {
@@ -32,6 +33,22 @@ public final class TaskRules {
         }
         requireMaxLength("description", "Description", description, DESCRIPTION_MAX_LENGTH);
         return description;
+    }
+
+    /**
+     * A7: the PATCH body can have the field status and no other field. A missing or null status is an error.
+     * The value must be one of the three statuses (A1). The first error that is found stops the check.
+     */
+    public static TaskStatus statusChange(List<String> unknownFields, String status) {
+        if (!unknownFields.isEmpty()) {
+            String name = unknownFields.get(0);
+            String shown = name.length() > 50 ? name.substring(0, 50) + "…" : name;
+            throw new ValidationException(shown, "Unknown field '" + shown + "'. Only 'status' can be changed.");
+        }
+        if (status == null) {
+            throw new ValidationException("status", "Status is required.");
+        }
+        return TaskStatus.parse(status);
     }
 
     // The database counts characters, not UTF-16 units, so the rule counts code points.

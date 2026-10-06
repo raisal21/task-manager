@@ -65,6 +65,38 @@ If another request deletes the board between the board check and the insert, the
 {"type":"about:blank","title":"Not Found","status":404,"detail":"There is no board with ID 999999.","instance":"/api/boards/999999/tasks","code":"NOT_FOUND","field":null}
 ```
 
+### `PATCH /api/tasks/{taskId}`
+
+Changes the status of a task. This is the only change that the API allows for a task (title and description edit is future work). The body is a JSON object with exactly one field, `status` (A7):
+
+```bash
+curl -i -X PATCH -H 'Content-Type: application/json' -d '{"status":"IN_PROGRESS"}' http://localhost:8080/api/tasks/1
+```
+
+Response `200` with the task:
+
+```json
+{"id":1,"boardId":1,"title":"Task","description":null,"status":"IN_PROGRESS","createdAt":"2026-10-06T10:45:45.984281Z","updatedAt":"2026-10-06T10:45:46.015887Z"}
+```
+
+- All changes between the three statuses are permitted, also from `DONE` back to `TODO` (A4).
+- If the status changes, the service sets `updatedAt` from its clock. If the new status is the same as the old status, nothing changes, and `updatedAt` stays the same (A18).
+- The request is idempotent: the same body again gives the same task.
+
+Errors, in this sequence (A11):
+
+| Order | Failure | Status | `code` | `field` |
+| --- | --- | --- | --- | --- |
+| 1 | The body is missing, is not valid JSON, is not a JSON object, or has a `status` that is an object or a list. `taskId` is not a number (`VALIDATION_FAILED` for `taskId`). | 400 | `MALFORMED_REQUEST` | `null` |
+| 2 | There is no task with this ID | 404 | `NOT_FOUND` | `null` |
+| 3 | The body has a field other than `status` | 400 | `VALIDATION_FAILED` | The name of the first unknown field |
+| 4 | `status` is missing or `null` | 400 | `VALIDATION_FAILED` | `status` |
+| 5 | `status` is not exactly `TODO`, `IN_PROGRESS`, or `DONE` | 400 | `VALIDATION_FAILED` | `status` |
+
+```json
+{"type":"about:blank","title":"Bad Request","status":400,"detail":"Unknown field 'title'. Only 'status' can be changed.","instance":"/api/tasks/1","code":"VALIDATION_FAILED","field":"title"}
+```
+
 ## Errors
 
 All failures use one JSON body with the content type `application/problem+json` (RFC 9457 Problem Details, with the extension members `code` and `field`). This includes the failures that Spring makes before a controller starts, for example malformed JSON, an unknown path, an incorrect method, an unsupported media type, and a rejected CORS origin.
@@ -95,19 +127,19 @@ All failures use one JSON body with the content type `application/problem+json` 
 
 | Failure | Status | `code` | `field` |
 | --- | --- | --- | --- |
-| A value breaks a rule, for example a board name that is empty, has only spaces, or has more than 100 characters | 400 | `VALIDATION_FAILED` | The field name, for example `name` or `title` |
-| A value in the path or in the query has the wrong type, for example `/api/boards/abc/tasks` | 400 | `VALIDATION_FAILED` | The name of the parameter, for example `boardId` |
+| A value breaks a rule, for example a board name that is empty, has only spaces, or has more than 100 characters, or a PATCH body has a field that is not allowed | 400 | `VALIDATION_FAILED` | The field name, for example `name`, `title`, or `status` |
+| A value in the path or in the query has the wrong type, for example `/api/boards/abc/tasks` | 400 | `VALIDATION_FAILED` | The name of the parameter, for example `boardId` or `taskId` |
 | The database rejects a value that has a named rule (`boards_name_not_blank`, `tasks_title_not_blank`, `tasks_status_valid`) | 400 | `VALIDATION_FAILED` | `name`, `title`, or `status` |
 | The request body is missing or is not valid JSON | 400 | `MALFORMED_REQUEST` | `null` |
 | The origin of a browser request is not in `APP_CORS_ALLOWED_ORIGINS` | 403 | `CORS_REJECTED` | `null` |
-| There is no endpoint for the path, or there is no board with the ID in the path | 404 | `NOT_FOUND` | `null` |
+| There is no endpoint for the path, or there is no board or task with the ID in the path | 404 | `NOT_FOUND` | `null` |
 | The HTTP method is not supported for the path. The `Allow` header lists the methods. | 405 | `METHOD_NOT_ALLOWED` | `null` |
 | The content type is not supported. The `Accept` header lists the types. | 415 | `UNSUPPORTED_MEDIA_TYPE` | `null` |
 | A database constraint with no mapping, or any other fault | 500 | `INTERNAL_ERROR` | `null` |
 
 An input failure or a domain failure never gives 500. The service writes the details of a 500 fault to its log only.
 
-New operations add their own rows to this table. The errors of the status change and of the deletes are not available yet.
+New operations add their own rows to this table. The errors of the deletes are not available yet.
 
 ### Examples
 

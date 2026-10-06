@@ -65,6 +65,23 @@ public class TaskService {
         return boardTasks.stream().filter(task -> task.getStatus() == status).toList();
     }
 
+    /**
+     * One write transaction: the task lookup, the rule functions, and the change (P5). The task is a managed entity,
+     * so that the UPDATE goes to the database when the transaction ends. The sequence of the errors is: the task (404),
+     * then the body fields (400). All status changes are permitted (A4). If the status is the same, nothing changes,
+     * also not updated_at (A18).
+     */
+    @Transactional
+    public Task changeStatus(long taskId, String status, List<String> unknownFields) {
+        Task task = tasks.findById(taskId).orElseThrow(() -> new NotFoundException("There is no task with ID " + taskId + "."));
+        TaskStatus newStatus = TaskRules.statusChange(unknownFields, status);
+        if (task.getStatus() != newStatus) {
+            task.setStatus(newStatus);
+            task.setUpdatedAt(clock.instant().truncatedTo(ChronoUnit.MICROS));
+        }
+        return task;
+    }
+
     private void requireBoard(long boardId) {
         if (boards.findById(boardId).isEmpty()) {
             throw new NotFoundException(noBoardMessage(boardId));

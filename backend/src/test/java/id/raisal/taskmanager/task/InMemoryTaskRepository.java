@@ -3,6 +3,7 @@ package id.raisal.taskmanager.task;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /** A fake for unit tests. It keeps tasks in memory and obeys the contract of the repository interface. */
 public class InMemoryTaskRepository implements TaskRepository {
@@ -38,5 +39,10 @@ public class InMemoryTaskRepository implements TaskRepository {
                 .filter(task -> task.getBoardId().equals(boardId))
                 .sorted(Comparator.comparing(Task::getCreatedAt).thenComparing(Task::getId))
                 .toList();
+    }
+
+    @Override
+    public Optional<Task> findById(Long id) {
+        return tasks.stream().filter(task -> task.getId().equals(id)).findFirst();
     }
 }
