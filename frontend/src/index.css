@@ -333,3 +333,20 @@ input:focus-visible {
   gap: 0.35rem;
   font-size: 0.925rem;
 }
+
+.message-with-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.message-with-action p {
+  margin: 0;
+}
+
+.message-with-action .button-secondary {
+  border-color: var(--danger-text);
+  color: var(--danger-text);
+}

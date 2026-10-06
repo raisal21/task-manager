@@ -12,8 +12,8 @@ type FormMessage = { kind: "validation"; text: string } | { kind: "write-error";
 
 function messageFor(error: ApiError): FormMessage {
   // A 400 response gives the message of the error body, near the input.
-  if (error.kind === "http" && error.status === 400) {
-    return { kind: "validation", text: error.detail ?? "The name is not correct." };
+  if (error.kind === "http" && error.status === 400 && error.detail !== undefined) {
+    return { kind: "validation", text: error.detail };
   }
   return { kind: "write-error", error };
 }

@@ -48,6 +48,17 @@ async function readHttpError(response: Response): Promise<ApiError> {
   });
 }
 
+/** The backend always sends JSON. Something else, for example a page of a proxy, is an unexpected fault. */
+async function readJson<T>(response: Response): Promise<T> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new ApiError("unexpected", "The server sent a response that this page cannot read", {
+      status: response.status,
+    });
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -61,7 +72,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       // No content, for example after a DELETE. The caller types such a request as Promise<void>.
       return undefined as T;
     }
-    return (await response.json()) as T;
+    return await readJson<T>(response);
   } catch (error) {
     throw toApiError(error);
   }

@@ -70,6 +70,17 @@ The case study gives no rule for these points. Each row is a decision of this pr
 
 The selected scope is the core of the case study: boards, tasks, the REST API, the PostgreSQL schema, the React interface, tests, and documentation. Optional items are not part of this scope: frontend tests, a docker compose file for all processes, status counts, and an "Open" filter.
 
+## Known limits
+
+These are limits of the current build, not defects that are hidden.
+
+- One trusted user. There is no authentication, no realtime update, and no version check. When two users or two browser tabs change the same task, the last write wins (A4, A18). The UI does not show changes of other users until you read the list again ("Reload" or "Retry").
+- A POST that gets no answer can be in the database. The UI tells the user to reload the list before a new submit, and it never sends a POST again by itself (A17). The submit guard of a form covers one pending request in one tab. It does not prevent all duplicate writes, and the backend accepts boards with the same name (A3).
+- A request that the UI ignores after a board change is not cancelled in the backend. For example, a task that you added on a board stays there, also if you changed the board before the answer came.
+- The service reads all tasks of a board and filters them by status in memory. This is fine for a small data set. There is no pagination, no caching, and no index on the status.
+- Title and description edit, a board delete in the UI, and an "Open" filter are not in the selected scope.
+- The frontend has no automated tests (they are optional and not selected). The backend has unit and integration tests. The browser flows were checked by hand.
+
 ## Stack
 
 - Backend: Java 17, Spring Boot 4.1, Maven wrapper, Spring Data JPA, Flyway.

@@ -83,14 +83,26 @@ If a POST gets no response, the board or the task can be in the database. The fo
 
 The task form belongs to the selected board. A board change makes a new form for the new board, with empty fields. The request of the previous board can still end. Its result does not change the new form, and it does not start a read of the list.
 
-States of the list:
+## States and texts
 
-| State                                     | Text                                                                                                         |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Loading                                   | "Loading boards…"                                                                                            |
-| Backend stopped, wrong URL, or CORS fault | "Cannot reach the server at {base URL}. The server may be stopped, or the URL or CORS setting may be wrong." |
-| Error response                            | "The server returned an error: {detail}."                                                                    |
-| No boards                                 | "No boards yet. Create one to start."                                                                        |
+All texts of the UI are in `src/StateMessage.tsx`. A text says only what the browser knows: what the server sent, or that the server did not answer.
+
+| State                                              | Text                                                                                                                                                                | Control |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| Loading                                            | "Loading boards…" or "Loading tasks…"                                                                                                                               |         |
+| Backend stopped, wrong URL, or CORS fault (a read) | "Cannot reach the server at {base URL}. The server may be stopped, or the URL or CORS setting may be wrong."                                                        | Retry   |
+| Error response (a read)                            | "The server returned an error: {detail}." The detail is the text of the error body.                                                                                 | Retry   |
+| An answer that the page cannot read (a read)       | "Something went wrong: The server sent a response that this page cannot read."                                                                                      | Retry   |
+| No boards                                          | "No boards yet. Create one to start."                                                                                                                               |         |
+| No tasks on a board                                | "No tasks yet." With a status filter: "No tasks with the status {status}."                                                                                          |         |
+| A board POST without an answer                     | "The server may have saved this board. Reload the list before you send it again." The form keeps the input.                                                         |         |
+| A task POST without an answer                      | "The server may have saved this task. Reload the list before you send it again." The form keeps the input.                                                          |         |
+| A status change or a delete without an answer      | "The server did not answer, so the status change (or the delete) may or may not be saved. Reload the list to check." The row keeps its last status from the server. |         |
+| An error response to a write                       | "The server returned an error: {detail}." near the form or the row                                                                                                  |         |
+| A form during its request                          | The button is disabled and shows "Saving…"                                                                                                                          |         |
+| A validation error                                 | The message of the error body, near the field                                                                                                                       |         |
+
+"Retry" starts the same read again. It is only for a read that got an error. A POST, a status change, and a delete never get a Retry button, because the first request can be in the database (A17). The buttons "Reload" in the two panels read the list again at any time.
 
 `useRequest` gives each list its state (loading, success, or error) and its read guard. Only the latest read can change the state. Each new read stops the previous read, and a response of a read that is not the latest is ignored, for a success and for an error. When the read function changes (another filter), the state is "loading" at once. `reload` always starts the current read, also when a write that began under an earlier filter ends later. After the component unmounts, no read is current, and a reload does nothing.
 

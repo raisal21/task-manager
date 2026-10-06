@@ -44,7 +44,9 @@ function BoardTasks({ boardId }: { boardId: number }) {
       <TaskForm boardId={boardId} onAdded={reload} />
       <StatusFilter value={filter} onChange={setFilter} />
       {state.status === "loading" && <StateMessage state="loading" what="tasks" />}
-      {state.status === "error" && <StateMessage state="read-error" error={state.error} />}
+      {state.status === "error" && (
+        <StateMessage state="read-error" error={state.error} onRetry={reload} />
+      )}
       {state.status === "success" && state.data.length === 0 && (
         <StateMessage state="empty" what="tasks" status={filter === "ALL" ? undefined : filter} />
       )}

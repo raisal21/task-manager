@@ -21,7 +21,9 @@ export default function BoardList({ selectedBoardId, onSelect }: BoardListProps)
         </button>
       </div>
       {state.status === "loading" && <StateMessage state="loading" what="boards" />}
-      {state.status === "error" && <StateMessage state="read-error" error={state.error} />}
+      {state.status === "error" && (
+        <StateMessage state="read-error" error={state.error} onRetry={reload} />
+      )}
       {state.status === "success" && state.data.length === 0 && (
         <StateMessage state="empty" what="boards" />
       )}

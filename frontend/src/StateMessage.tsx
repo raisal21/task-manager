@@ -8,7 +8,7 @@ export type StateMessageProps =
   | { state: "loading"; what: "boards" | "tasks" }
   | { state: "empty"; what: "boards" }
   | { state: "empty"; what: "tasks"; status?: TaskStatus }
-  | { state: "read-error"; error: ApiError }
+  | { state: "read-error"; error: ApiError; onRetry: () => void }
   | { state: "write-error"; action: WriteAction; error: ApiError; id?: string }
   | { state: "validation"; text: string; id?: string };
 
@@ -23,12 +23,25 @@ export default function StateMessage(props: StateMessageProps) {
     case "empty":
       return <p>{emptyText(props)}</p>;
     case "read-error":
-      return <ErrorText text={readErrorText(props.error)} />;
+      // Retry is only for a read that got an error. A read changes no data, so it is safe to send it again.
+      // A POST, a status change, and a delete never get a Retry button (A17).
+      return <ReadError text={readErrorText(props.error)} onRetry={props.onRetry} />;
     case "write-error":
       return <ErrorText id={props.id} text={writeErrorText(props.error, props.action)} />;
     case "validation":
       return <ErrorText id={props.id} text={props.text} />;
   }
+}
+
+function ReadError({ text, onRetry }: { text: string; onRetry: () => void }) {
+  return (
+    <div role="alert" className="message message-error message-with-action">
+      <p>{text}</p>
+      <button type="button" className="button-secondary" onClick={onRetry}>
+        Retry
+      </button>
+    </div>
+  );
 }
 
 function ErrorText({ text, id }: { text: string; id?: string }) {
@@ -56,7 +69,8 @@ function readErrorText(error: ApiError): string {
     case "http":
       return serverErrorText(error);
     default:
-      return `Something went wrong: ${error.message}.`;
+      // An answer that the page cannot read. The message of the client says what it was.
+      return `Something went wrong: ${withPeriod(error.message)}`;
   }
 }
 
@@ -78,8 +92,12 @@ function writeErrorText(error: ApiError, action: WriteAction): string {
   }
 }
 
-/** "The server returned an error: {detail}." The detail of the backend is a sentence, so do not add a second period. */
+/** "The server returned an error: {detail}." The text has only what the server sent. */
 function serverErrorText(error: ApiError): string {
-  const detail = error.detail ?? `status ${error.status}`;
-  return `The server returned an error: ${detail}${detail.endsWith(".") ? "" : "."}`;
+  return `The server returned an error: ${withPeriod(error.detail ?? `status ${error.status}`)}`;
+}
+
+/** The detail of the backend is a sentence with a period. Do not add a second one. */
+function withPeriod(text: string): string {
+  return text.endsWith(".") ? text : `${text}.`;
 }

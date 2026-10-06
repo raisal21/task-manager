@@ -17,11 +17,13 @@ interface FormMessages {
 
 function messagesFor(error: ApiError): FormMessages {
   // A 400 response gives the message of the error body, near the field that it names.
-  if (error.kind === "http" && error.status === 400 && error.field === "title") {
-    return { title: error.detail };
-  }
-  if (error.kind === "http" && error.status === 400 && error.field === "description") {
-    return { description: error.detail };
+  if (error.kind === "http" && error.status === 400 && error.detail !== undefined) {
+    if (error.field === "title") {
+      return { title: error.detail };
+    }
+    if (error.field === "description") {
+      return { description: error.detail };
+    }
   }
   return { form: error };
 }
