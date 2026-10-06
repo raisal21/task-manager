@@ -6,7 +6,9 @@ This project is my solution to the "Mini Task Management Application" case study
 
 ## Status
 
-Not runnable yet. This repository has only the layout and the conventions.
+The backend starts and sends the list of boards from PostgreSQL (`GET /api/boards`). The frontend is not runnable yet.
+
+To try the backend: start the database with `docker compose up -d db` in this folder, then follow [backend/README.md](backend/README.md).
 
 ## Layout
 

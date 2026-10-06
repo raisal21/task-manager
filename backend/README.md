@@ -1,26 +1,63 @@
 # Task Manager: backend
 
-The Spring Boot service of the Task Manager. It is a shell at this time: it starts, but it has no endpoint and no database.
+The Spring Boot service of the Task Manager. It has one endpoint, `GET /api/boards`, and keeps its data in PostgreSQL.
 
 ## Prerequisites
 
 - JDK 17 or newer. The build uses Java release 17 (`<java.version>17</java.version>`), also on a newer JDK.
 - No Maven installation is necessary. The Maven wrapper (`./mvnw`) downloads Maven 3.9.16 on first use.
-- Internet access on first use, to download Maven and the dependencies.
+- Docker, for the local database (`docker compose`) and for the integration tests (Testcontainers).
+- Internet access on first use, to download Maven, the dependencies, and the `postgres:18` image.
 
 ## Start
 
+1. Start the database from the repository root: `docker compose up -d db`.
+2. Start the backend in this folder: `./mvnw spring-boot:run`.
+
+The backend listens on `http://localhost:8080`. It makes the schema itself at startup (see "Schema creation").
+
+The database settings come from environment variables. Each has a local default that matches `compose.yaml`.
+
+| Variable | Default |
+| --- | --- |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/taskmanager` |
+| `SPRING_DATASOURCE_USERNAME` | `taskmanager` |
+| `SPRING_DATASOURCE_PASSWORD` | `taskmanager` |
+
+The default credentials are for local development only. The compose service binds port 5432 to `127.0.0.1`.
+
+## Schema creation
+
+Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` when the backend starts. An empty database gets the full schema, with no manual step. Hibernate is set to `ddl-auto=validate`: it only checks that the entities match the schema and never changes it.
+
+| Migration | Content |
+| --- | --- |
+| `V1__create_boards.sql` | The `boards` table: identity `id`, `name VARCHAR(100) NOT NULL`, `created_at TIMESTAMPTZ NOT NULL` |
+
+## API
+
+### `GET /api/boards`
+
+Sends all boards as a JSON array, ordered by `createdAt` from the first to the last, then by `id` (A5).
+
 ```bash
-./mvnw spring-boot:run
+curl -i http://localhost:8080/api/boards
 ```
 
-The service listens on `http://localhost:8080`.
+```json
+[{"id":1,"name":"Sprint 1","createdAt":"2026-10-06T09:27:16.907806Z"}]
+```
+
+`createdAt` is an ISO-8601 UTC time. Failures use the default Spring Boot error body at this time.
 
 ## Test
 
-```bash
-./mvnw test
-```
+| Command | What it does | Docker |
+| --- | --- | --- |
+| `./mvnw test` | Unit tests with fakes, and the web slice test | Not necessary |
+| `./mvnw verify` | The unit tests, then the integration tests (`*IT`) with a PostgreSQL 18 container from Testcontainers | Necessary |
+
+Surefire runs `*Test` and `*Tests`. Failsafe runs `*IT`. Each integration test context gets its own disposable container.
 
 ## Selected versions
 
@@ -30,11 +67,13 @@ The service listens on `http://localhost:8080`.
 | Java release | 17 |
 | Base package | `id.raisal.taskmanager` |
 | Build tool | Maven 3.9.16, through the committed wrapper |
-| Dependencies | `spring-boot-starter-webmvc`, and `spring-boot-starter-webmvc-test` for tests |
-| Tested JDK | Temurin 17.0.20.1 (`./mvnw test`: 1 test, no failures, 2026-10-06) |
+| Data | Spring Data JPA with Hibernate 7.4.5, Flyway 12.4.0, PostgreSQL JDBC 42.7.13 |
+| Database | PostgreSQL 18 (`postgres:18`) |
+| Test | Testcontainers 2.0.5 (`testcontainers-postgresql`), `spring-boot-testcontainers` |
+| Tested JDK | Temurin 17.0.20.1 (`./mvnw test` and `./mvnw verify`, 2026-10-06) |
 
 Full proof on a clean clone with JDK 17 comes with the last ticket of the plan. Only the JDK listed above has been tested so far.
 
 ## Status
 
-There is no endpoint, no database, and no error body yet. The context test only shows that the application context starts.
+The backend lists boards. It cannot add boards, it has no tasks, and failures use the default Spring Boot error body.
