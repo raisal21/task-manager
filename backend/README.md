@@ -29,12 +29,15 @@ The default credentials are for local development only. The compose service bind
 
 ## Schema creation
 
+See [SCHEMA.md](SCHEMA.md) for the tables, the constraints, and the reasons.
+
 Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` when the backend starts. An empty database gets the full schema, with no manual step. Hibernate is set to `ddl-auto=validate`: it only checks that the entities match the schema and never changes it.
 
 | Migration | Content |
 | --- | --- |
 | `V1__create_boards.sql` | The `boards` table: identity `id`, `name VARCHAR(100) NOT NULL`, `created_at TIMESTAMPTZ NOT NULL` |
 | `V2__boards_name_not_blank.sql` | The constraint `boards_name_not_blank`: `CHECK (name ~ '\S')`. The database also rejects a name with only spaces or tabs. |
+| `V3__create_tasks.sql` | The `tasks` table with the foreign key `fk_tasks_board` (`ON DELETE RESTRICT`), the checks `tasks_title_not_blank` and `tasks_status_valid`, and the index `tasks_board_id_idx`. There is no task endpoint yet. |
 
 ## API
 

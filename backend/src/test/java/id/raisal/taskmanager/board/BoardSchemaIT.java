@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import id.raisal.taskmanager.TestcontainersConfiguration;
+import id.raisal.taskmanager.support.TestDatabase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,7 +25,7 @@ class BoardSchemaIT {
 
     @BeforeEach
     void cleanBoards() {
-        jdbc.sql("DELETE FROM boards").update();
+        TestDatabase.clean(jdbc);
     }
 
     @ParameterizedTest

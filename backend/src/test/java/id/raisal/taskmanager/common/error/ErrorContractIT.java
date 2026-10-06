@@ -3,6 +3,7 @@ package id.raisal.taskmanager.common.error;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import id.raisal.taskmanager.TestcontainersConfiguration;
+import id.raisal.taskmanager.support.TestDatabase;
 import id.raisal.taskmanager.board.Board;
 import id.raisal.taskmanager.board.BoardRepository;
 import id.raisal.taskmanager.support.TestApi;
@@ -73,7 +74,7 @@ class ErrorContractIT {
     @BeforeEach
     void setUp() {
         api = new TestApi(port);
-        jdbc.sql("DELETE FROM boards").update();
+        TestDatabase.clean(jdbc);
     }
 
     @Test

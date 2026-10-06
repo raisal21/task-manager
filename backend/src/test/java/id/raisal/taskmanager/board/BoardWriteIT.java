@@ -3,6 +3,7 @@ package id.raisal.taskmanager.board;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import id.raisal.taskmanager.TestcontainersConfiguration;
+import id.raisal.taskmanager.support.TestDatabase;
 import id.raisal.taskmanager.support.TestApi;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -31,7 +32,7 @@ class BoardWriteIT {
 
     @BeforeEach
     void cleanBoards() {
-        jdbc.sql("DELETE FROM boards").update();
+        TestDatabase.clean(jdbc);
     }
 
     @Test
