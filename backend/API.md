@@ -1,10 +1,87 @@
 # Task Manager API
 
-The REST API of the backend. The endpoints come first, then the error contract.
+The REST API of the backend. It has seven endpoints and one error body.
+
+| Item | Rule |
+| --- | --- |
+| Base URL | `http://localhost:8080`. The frontend gets it from `VITE_API_BASE_URL`. |
+| Format | JSON. A request with a body has the header `Content-Type: application/json`. Another content type gives 415. |
+| IDs | Numbers (`BIGINT`), sent as JSON numbers (A8) |
+| Times | ISO-8601 in UTC, with microseconds, for example `2026-10-06T09:43:17.154600Z` (A9) |
+| Lists | In the order of `createdAt` from the first to the last, then `id` (A5). There is no pagination. |
+| CORS | The backend answers browser requests from the origins in `APP_CORS_ALLOWED_ORIGINS` (default `http://localhost:5173`) for all paths under `/api/` |
+| Errors | One JSON body for all failures. See "Errors" at the end of this document. |
+
+| Method and path | Success | Errors |
+| --- | --- | --- |
+| `GET /api/boards` | 200, an array of boards | |
+| `POST /api/boards` | 201, the new board | 400 |
+| `DELETE /api/boards/{boardId}` | 204 | 400, 404, 409 |
+| `GET /api/boards/{boardId}/tasks` | 200, an array of tasks | 400, 404 |
+| `POST /api/boards/{boardId}/tasks` | 201, the new task | 400, 404 |
+| `PATCH /api/tasks/{taskId}` | 200, the changed task | 400, 404 |
+| `DELETE /api/tasks/{taskId}` | 204 | 400, 404 |
+
+A board is `{"id", "name", "createdAt"}`. A task is `{"id", "boardId", "title", "description", "status", "createdAt", "updatedAt"}`. The `description` is `null` when there is none. The `status` is `TODO`, `IN_PROGRESS`, or `DONE`.
 
 ## Endpoints
 
-The boards endpoints (`GET /api/boards` and `POST /api/boards`) are in [README.md](README.md).
+### `GET /api/boards`
+
+Sends all boards as a JSON array.
+
+```bash
+curl -i http://localhost:8080/api/boards
+```
+
+Response `200`:
+
+```json
+[{"id":1,"name":"Sprint 1","createdAt":"2026-10-06T09:27:16.907806Z"}]
+```
+
+There is no error response in normal use. If the database is not available, the answer is the error body with 500.
+
+### `POST /api/boards`
+
+Adds a board. The body is a JSON object with `name`. The service removes the spaces at the two ends of the name. The name must not be empty, and it can have 100 characters at most (A6). The service sets `createdAt` from its clock (A12). Two boards can have the same name (A3).
+
+```bash
+curl -i -H 'Content-Type: application/json' -d '{"name":"  Sprint 1  "}' http://localhost:8080/api/boards
+```
+
+Response `201`:
+
+```json
+{"id":3,"name":"Sprint 1","createdAt":"2026-10-06T09:43:17.154600Z"}
+```
+
+A missing name, an empty name, a name with only spaces, or a name with more than 100 characters gives 400:
+
+```json
+{"type":"about:blank","title":"Bad Request","status":400,"detail":"Name is required.","instance":"/api/boards","code":"VALIDATION_FAILED","field":"name"}
+```
+
+### `DELETE /api/boards/{boardId}`
+
+Deletes a board that has no tasks. A board with tasks is not deleted (A2). Delete its tasks first. The UI has no board delete (A13).
+
+```bash
+curl -i -X DELETE http://localhost:8080/api/boards/2
+```
+
+| Result | Status | Body |
+| --- | --- | --- |
+| The board has no tasks and is deleted | 204 | none |
+| The board has one or more tasks, in any status | 409 | The error body, `BOARD_NOT_EMPTY`. The board and its tasks stay. |
+| `boardId` is not a number | 400 | The error body, `VALIDATION_FAILED`, field `boardId` |
+| There is no board with this ID | 404 | The error body, `NOT_FOUND` |
+
+```json
+{"type":"about:blank","title":"Conflict","status":409,"detail":"Board 1 has tasks. Delete its tasks first.","instance":"/api/boards/1","code":"BOARD_NOT_EMPTY","field":null}
+```
+
+Two layers keep this rule. The service checks the tasks first. The database foreign key `fk_tasks_board` (`ON DELETE RESTRICT`) is the backstop for SQL without the API, and for a task that another request adds between the check and the delete. In that case the answer is also 409, and nothing is deleted.
 
 ### `GET /api/boards/{boardId}/tasks`
 
@@ -55,7 +132,8 @@ Errors, in this sequence (A11):
 
 | Order | Failure | Status | `code` | `field` |
 | --- | --- | --- | --- | --- |
-| 1 | The body is missing or is not valid JSON, or `boardId` is not a number | 400 | `MALFORMED_REQUEST`, or `VALIDATION_FAILED` for `boardId` | `null`, or `boardId` |
+| 1 | The body is missing, is not valid JSON, or is not a JSON object | 400 | `MALFORMED_REQUEST` | `null` |
+| 1 | `boardId` is not a number | 400 | `VALIDATION_FAILED` | `boardId` |
 | 2 | There is no board with this ID | 404 | `NOT_FOUND` | `null` |
 | 3 | The title or the description breaks a rule | 400 | `VALIDATION_FAILED` | `title` or `description` |
 
@@ -87,7 +165,8 @@ Errors, in this sequence (A11):
 
 | Order | Failure | Status | `code` | `field` |
 | --- | --- | --- | --- | --- |
-| 1 | The body is missing, is not valid JSON, is not a JSON object, or has a `status` that is an object or a list. `taskId` is not a number (`VALIDATION_FAILED` for `taskId`). | 400 | `MALFORMED_REQUEST` | `null` |
+| 1 | The body is missing, is not valid JSON, is not a JSON object, or has a `status` that is an object or a list | 400 | `MALFORMED_REQUEST` | `null` |
+| 1 | `taskId` is not a number | 400 | `VALIDATION_FAILED` | `taskId` |
 | 2 | There is no task with this ID | 404 | `NOT_FOUND` | `null` |
 | 3 | The body has a field other than `status` | 400 | `VALIDATION_FAILED` | The name of the first unknown field |
 | 4 | `status` is missing or `null` | 400 | `VALIDATION_FAILED` | `status` |
@@ -110,27 +189,6 @@ curl -i -X DELETE http://localhost:8080/api/tasks/1
 | The task is deleted | 204 | none |
 | `taskId` is not a number | 400 | The error body, `VALIDATION_FAILED`, field `taskId` |
 | There is no task with this ID. This is also the answer for a second delete of the same task. | 404 | The error body, `NOT_FOUND` |
-
-### `DELETE /api/boards/{boardId}`
-
-Deletes a board that has no tasks. A board with tasks is not deleted (A2). Delete its tasks first. The UI has no board delete (A13).
-
-```bash
-curl -i -X DELETE http://localhost:8080/api/boards/2
-```
-
-| Result | Status | Body |
-| --- | --- | --- |
-| The board has no tasks and is deleted | 204 | none |
-| The board has one or more tasks, in any status | 409 | The error body, `BOARD_NOT_EMPTY`. The board and its tasks stay. |
-| `boardId` is not a number | 400 | The error body, `VALIDATION_FAILED`, field `boardId` |
-| There is no board with this ID | 404 | The error body, `NOT_FOUND` |
-
-```json
-{"type":"about:blank","title":"Conflict","status":409,"detail":"Board 1 has tasks. Delete its tasks first.","instance":"/api/boards/1","code":"BOARD_NOT_EMPTY","field":null}
-```
-
-Two layers keep this rule. The service checks the tasks first. The database foreign key `fk_tasks_board` (`ON DELETE RESTRICT`) is the backstop for SQL without the API, and for a task that another request adds between the check and the delete. In that case the answer is also 409, and nothing is deleted.
 
 ## Errors
 

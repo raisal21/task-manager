@@ -1,6 +1,11 @@
 # Task Manager: backend
 
-The Spring Boot service of the Task Manager. It has the board endpoints (`GET`, `POST`, and `DELETE`), the task endpoints (`GET` and `POST` for a board, `PATCH` and `DELETE` for a task), and keeps its data in PostgreSQL. See [API.md](API.md).
+The Spring Boot service of the Task Manager. It keeps boards and tasks in PostgreSQL and has a REST API with seven endpoints.
+
+| Document | Content |
+| --- | --- |
+| [API.md](API.md) | Each endpoint with a request, a success, and an error, and the one error body |
+| [SCHEMA.md](SCHEMA.md) | The tables, the columns, the constraints, the indexes, and the reasons |
 
 ## Prerequisites
 
@@ -14,7 +19,7 @@ The Spring Boot service of the Task Manager. It has the board endpoints (`GET`, 
 1. Start the database from the repository root: `docker compose up -d db`.
 2. Start the backend in this folder: `./mvnw spring-boot:run`.
 
-The backend listens on `http://localhost:8080`. It makes the schema itself at startup (see "Schema creation").
+The backend listens on `http://localhost:8080`. Check it with `curl -i http://localhost:8080/api/boards`. It makes the schema itself at startup (see "Schema creation").
 
 The settings come from environment variables. Each has a local default. The database defaults match `compose.yaml`.
 
@@ -25,84 +30,41 @@ The settings come from environment variables. Each has a local default. The data
 | `SPRING_DATASOURCE_PASSWORD` | `taskmanager` |
 | `APP_CORS_ALLOWED_ORIGINS` | `http://localhost:5173` (a comma-separated list of browser origins) |
 
-The default credentials are for local development only. The compose service binds port 5432 to `127.0.0.1`.
+The default credentials are for local development only. The compose service binds port 5432 to `127.0.0.1`, and its data stays in a Docker volume after `docker compose down`.
 
 ## Schema creation
 
-See [SCHEMA.md](SCHEMA.md) for the tables, the constraints, and the reasons.
+Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` when the backend starts. An empty database gets the full schema (`V1`, `V2`, `V3`) with no manual step. Hibernate is set to `ddl-auto=validate`: it only checks that the entities match the schema and never changes it. [SCHEMA.md](SCHEMA.md) gives the tables and the reasons.
 
-Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` when the backend starts. An empty database gets the full schema, with no manual step. Hibernate is set to `ddl-auto=validate`: it only checks that the entities match the schema and never changes it.
-
-| Migration | Content |
-| --- | --- |
-| `V1__create_boards.sql` | The `boards` table: identity `id`, `name VARCHAR(100) NOT NULL`, `created_at TIMESTAMPTZ NOT NULL` |
-| `V2__boards_name_not_blank.sql` | The constraint `boards_name_not_blank`: `CHECK (name ~ '\S')`. The database also rejects a name with only spaces or tabs. |
-| `V3__create_tasks.sql` | The `tasks` table with the foreign key `fk_tasks_board` (`ON DELETE RESTRICT`), the checks `tasks_title_not_blank` and `tasks_status_valid`, and the index `tasks_board_id_idx`. |
-
-## API
-
-### `GET /api/boards`
-
-Sends all boards as a JSON array, ordered by `createdAt` from the first to the last, then by `id` (A5).
-
-```bash
-curl -i http://localhost:8080/api/boards
-```
-
-```json
-[{"id":1,"name":"Sprint 1","createdAt":"2026-10-06T09:27:16.907806Z"}]
-```
-
-`createdAt` is an ISO-8601 UTC time. Failures use the error body in [API.md](API.md).
-
-### `POST /api/boards`
-
-Adds a board. The body is a JSON object with `name`. The service removes the spaces at the two ends of the name. The name must not be empty, and it can have 100 characters at most (A6). The service sets `createdAt` from its clock (A12).
-
-```bash
-curl -i -H 'Content-Type: application/json' -d '{"name":"  Sprint 1  "}' http://localhost:8080/api/boards
-```
-
-Response `201`:
-
-```json
-{"id":3,"name":"Sprint 1","createdAt":"2026-10-06T09:43:17.154600Z"}
-```
-
-A missing name, an empty name, a name with only spaces, or a name with more than 100 characters gives `400` with `Content-Type: application/problem+json`. All failures use this body. See [API.md](API.md) for the members and the codes.
-
-```json
-{"type":"about:blank","title":"Bad Request","status":400,"detail":"Name is required.","instance":"/api/boards","code":"VALIDATION_FAILED","field":"name"}
-```
-
-### CORS
-
-The browser frontend runs on another origin than the API. The backend answers requests from the origins in `APP_CORS_ALLOWED_ORIGINS` for the paths under `/api/` (methods GET, POST, PATCH, and DELETE). A request from any other origin gets 403 with the error body (`CORS_REJECTED`). CORS does not protect the API from other clients, such as curl.
+Schema alternative that was examined and rejected: the task status is a `VARCHAR(20)` with a `CHECK`, not a lookup table or a PostgreSQL `ENUM`. Three fixed values do not need a join, and the `CHECK` shows the rule in the table definition. [SCHEMA.md](SCHEMA.md) gives more rejected alternatives.
 
 ## Test
 
 | Command | What it does | Docker |
 | --- | --- | --- |
-| `./mvnw test` | Unit tests with fakes, and the web slice test | Not necessary |
-| `./mvnw verify` | The unit tests, then the integration tests (`*IT`) with a PostgreSQL 18 container from Testcontainers | Necessary |
+| `./mvnw test` | Unit tests with fakes, and web slice tests | Not necessary |
+| `./mvnw verify` | The unit tests, then the integration tests (`*IT`) with a PostgreSQL 18 container from Testcontainers. This is the full suite. | Necessary |
 
-Surefire runs `*Test` and `*Tests`. Failsafe runs `*IT`. Each integration test context gets its own disposable container.
+Surefire runs `*Test` and `*Tests`. Failsafe runs `*IT`. Each integration test context gets its own disposable container, and the tests do not use the database of `docker compose`. The race tests use a pause gate in the test sources, two committed transactions, and time limits, without sleeps.
 
-## Selected versions
+## Selected stack and reasons
 
-| Item | Value |
-| --- | --- |
-| Spring Boot | 4.1.1 (parent `spring-boot-starter-parent`, it manages the dependency versions) |
-| Java release | 17 |
-| Base package | `id.raisal.taskmanager` |
-| Build tool | Maven 3.9.16, through the committed wrapper |
-| Data | Spring Data JPA with Hibernate 7.4.5, Flyway 12.4.0, PostgreSQL JDBC 42.7.13 |
-| Database | PostgreSQL 18 (`postgres:18`) |
-| Test | Testcontainers 2.0.5 (`testcontainers-postgresql`), `spring-boot-testcontainers` |
-| Tested JDK | Temurin 17.0.20.1 (`./mvnw test` and `./mvnw verify`, 2026-10-06) |
+| Choice | Version | Reason |
+| --- | --- | --- |
+| Java release 17 | Temurin 17.0.20.1 tested | Release 17 is the minimum JDK. A newer JDK can build for release 17. A JDK 17 cannot build for release 21. |
+| Spring Boot | 4.1.1 | The parent POM manages the versions of the dependencies. Hibernate 7.4.5, Flyway 12.4.0, PostgreSQL JDBC 42.7.13, and Jackson 3.1.5 come with it. |
+| Maven wrapper | Maven 3.9.16 | No Maven installation is necessary on a new machine. |
+| PostgreSQL | 18 (`postgres:18`) | Foreign key, `CHECK`, and identity columns give the rules of the data to the database. |
+| Flyway with `ddl-auto=validate` | | The schema is in versioned SQL, and the backend makes it at startup. Hibernate does not change it. |
+| Spring Data JPA | | `BoardRepository` and `TaskRepository` extend `Repository<T, ID>` with only the methods that the services use, so that a fake stays small. |
+| Rule functions in `BoardRules` and `TaskRules` | | The services use them, so that a unit test examines the same rules as production. The entities are plain data structures. |
+| One error body (RFC 9457 with `code` and `field`) | | Spring uses this format for its own errors. A client reads `code` and `field`. |
+| Fakes and Testcontainers | Testcontainers 2.0.5 | A fake tests the service rules. A real PostgreSQL container tests the constraints, the transactions, and the queries. H2 and Mockito mocks do neither. |
 
-Full proof on a clean clone with JDK 17 comes with the last ticket of the plan. Only the JDK listed above has been tested so far.
+Package layout: `id.raisal.taskmanager` has `board`, `task`, and `common` (`error`, `config`). A controller has no business rule. A service has no HTTP type.
 
-## Status
+## Limits
 
-The backend lists and adds boards, and lists and adds the tasks of a board (see [API.md](API.md)). It changes the status of a task (`PATCH /api/tasks/{taskId}`) and deletes a task (`DELETE /api/tasks/{taskId}`). It deletes a board only if the board has no tasks (`DELETE /api/boards/{boardId}`, otherwise 409). All failures use the one error body of [API.md](API.md).
+- Last write wins. There is no version check (optimistic locking) when two clients change the same task.
+- There is no authentication, no pagination, and no caching.
+- The service filters the tasks of a board by status in memory.
