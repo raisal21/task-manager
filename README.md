@@ -48,7 +48,8 @@ Open `http://localhost:5173`. Stop the services with `Ctrl+C`, and the database 
 | Where | Command | Result |
 | --- | --- | --- |
 | `backend/` | `./mvnw verify` | The unit tests and the integration tests with PostgreSQL in Testcontainers (needs Docker). `./mvnw test` runs only the unit tests and needs no Docker. |
-| `frontend/` | `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm run build` | The quality checks. There are no automated frontend tests. |
+| `frontend/` | `npm test` | Two component tests of the loading and backend-down states (no backend and no Docker needed). |
+| `frontend/` | `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm run build` | The quality checks. |
 
 ## Self-checks
 
@@ -93,8 +94,8 @@ These are limits of the current build.
 - **An unclear POST.** A POST that gets no answer can be in the database. The UI tells the user to reload the list before a new submit, and it never sends a POST again by itself (A17). The submit guard of a form covers one pending request in one tab. It does not prevent all duplicate writes, and the backend accepts boards with the same name (A3).
 - **Ignored requests are not cancelled.** A request that the UI ignores after a board change still reaches the backend. For example, a task that you added on a board stays there, also if you changed the board before the answer came.
 - **Small data only.** The service reads all tasks of a board and filters them by status in memory. There is no pagination, no caching, and no index on the status.
-- **Tests.** The frontend has no automated tests. The backend has unit and integration tests. The browser flows were checked by hand.
-- **Not in the selected scope.** A board delete in the UI, title and description edit, an "Open" filter, status counts, and a docker compose file for all processes.
+- **Tests.** The frontend has two automated tests, for the loading and backend-down states of the task panel. The other components have none. The backend has unit and integration tests. The browser flows were checked by hand.
+- **Not in the selected scope.** A board delete in the UI, title and description edit, an "Open" filter, and status counts.
 
 ## Future work
 

@@ -32,11 +32,12 @@ Copy `.env.example` to `.env` to change it. `src/api/config.ts` is the only file
 | `npm run typecheck`    | `tsc -b`, the TypeScript type check                             |
 | `npm run build`        | The type check, then the Vite production build in `dist/`       |
 
-There are no automated frontend tests. They are optional, and they are not in the selected scope. The behavior was checked in a browser against the real backend: add a board, select it, add a task, change its status, filter, delete the task, and stop the backend to see the error texts. Each of these steps works without a full page reload.
+`npm test` runs two component tests of `TaskPanel` (R25, R29): the loading text while the server has not answered, and the "Cannot reach the server" error with a Retry button when the backend is down. They replace `fetch` with one helper (`src/test/stubFetch.ts`), so they never reach a real backend. The other components have no automated tests. The rest of the behavior was checked in a browser against the real backend: add a board, select it, add a task, change its status, filter, delete the task, and stop the backend to see the error texts. Each of these steps works without a full page reload.
 
 ## Selected stack and reasons
 
 | Item                       | Version        | Reason                                                                                                       |
+| `npm test`             | Vitest, once (`vitest run`). No backend and no Docker needed.   |
 | -------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
 | React, React DOM           | 19.3.0         | Function components and hooks (a requirement of the case study)                                              |
 | TypeScript                 | 6.0.3          | Types for the API. This is the `~6.0.2` range of the Vite `react-ts` template.                               |
@@ -49,6 +50,7 @@ There are no automated frontend tests. They are optional, and they are not in th
 
 The lockfile `package-lock.json` has the full dependency tree.
 
+| Vitest, Testing Library    | 5.0.3, 16.3.3  | Two component tests (R29). Vitest reads the Vite config, and jsdom gives it a DOM.                           |
 ## Functions
 
 - **Boards.** The list (`GET /api/boards`), the selection of one board (`aria-current="true"`), and a form to add a board. The browser rejects an empty name. The message of a 400 response shows near the input. There is no board delete in the UI (A13).
@@ -98,4 +100,5 @@ All texts are in `src/StateMessage.tsx`. A text says only what the browser knows
 - A request that the UI ignores after a board change is not cancelled in the backend. A task that you added on a board stays there, also if you changed the board before the answer came.
 - The guards cover one pending request in one browser tab. They do not prevent duplicate boards from two tabs or from a second submit after an unclear result. The backend does not reject duplicate board names (A3).
 - Last write wins. The UI does not detect changes from other users or tabs. Use "Reload" or "Retry" to see them.
-- There are no automated frontend tests.
+| `src/TaskPanel.test.tsx`, `src/test/stubFetch.ts`                                                       | The two `TaskPanel` tests and the helper that replaces `fetch`                                               |
+- Only `TaskPanel` has automated tests, for two states (loading, backend down). The other components were checked by hand.
