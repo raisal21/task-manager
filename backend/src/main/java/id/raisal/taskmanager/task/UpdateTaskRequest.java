@@ -2,6 +2,7 @@ package id.raisal.taskmanager.task;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,12 +12,15 @@ import java.util.List;
  * fields. This class collects them, and TaskRules.statusChange rejects them. A body that is not an object
  * or is not JSON never gets here: Jackson rejects it, and the error handler sends MALFORMED_REQUEST.
  */
+@Schema(additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
 public class UpdateTaskRequest {
 
     private String status;
     private final List<String> unknownFields = new ArrayList<>();
 
     @JsonSetter("status")
+    @Schema(description = "The only field accepted by PATCH", example = "IN_PROGRESS",
+            requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"TODO", "IN_PROGRESS", "DONE"})
     public void setStatus(String status) {
         this.status = status;
     }

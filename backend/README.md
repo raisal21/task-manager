@@ -41,6 +41,14 @@ Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` wh
 
 Schema alternative that was examined and rejected: the task status is a `VARCHAR(20)` with a `CHECK`, not a lookup table or a PostgreSQL `ENUM`. Three fixed values do not need a join, and the `CHECK` shows the rule in the table definition. [SCHEMA.md](SCHEMA.md) gives more rejected alternatives.
 
+## Interactive API documentation
+
+Open `http://localhost:8080/swagger-ui.html` after starting the backend. Swagger UI lists the seven operations under **Boards** and **Tasks**. **Try it out → Execute** sends a real request to the running backend. The generated OpenAPI specification is available at `/v3/api-docs` (JSON) and `/v3/api-docs.yaml` (YAML).
+
+`springdoc-openapi-starter-webmvc-ui` 3.1.1 generates the specification from the controllers and request/response types. `OpenApiConfig` gives the title and the per-operation error responses; schema annotations supply examples and input rules. Only `/api/**` paths are documented. The `/error` fallback controller is excluded. The handwritten [API.md](API.md) describes ordering, validation precedence, races, and other rules beyond the generated schema.
+
+Swagger UI runs in the backend, so it needs no additional container or CORS origin. The same frontend, API, and pgAdmin presentation sequence is documented in the [root README](../README.md#api-browser-for-presentations-swagger-ui).
+
 ## Test
 
 | Command | What it does | Docker |
@@ -48,7 +56,7 @@ Schema alternative that was examined and rejected: the task status is a `VARCHAR
 | `./mvnw test` | Unit tests with fakes, and web slice tests | Not necessary |
 | `./mvnw verify` | The unit tests, then the integration tests (`*IT`) with a PostgreSQL 18 container from Testcontainers. This is the full suite. | Necessary |
 
-Last full run (`./mvnw verify`, Temurin 17.0.20.1, 2026-10-06): 136 unit and web slice tests and 63 integration tests, 0 failures. The same command on Temurin 21.0.12.1 gave the same counts.
+Last full run (`./mvnw verify`, Temurin 17.0.20.1, 2026-10-08): 136 unit and web slice tests and 64 integration tests, 0 failures. This includes a real HTTP check of Swagger UI, all seven documented operations, schema references, and the PATCH status examples. Earlier runs on 2026-10-06 passed 136 unit/web tests and 63 integration tests on both Temurin 17.0.20.1 and 21.0.12.1.
 
 Surefire runs `*Test` and `*Tests`. Failsafe runs `*IT`. Each integration test context gets its own disposable container, and the tests do not use the database of `docker compose`. The race tests use a pause gate in the test sources, two committed transactions, and time limits, without sleeps.
 

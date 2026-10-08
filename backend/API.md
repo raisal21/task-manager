@@ -2,6 +2,8 @@
 
 The REST API of the backend. It has seven endpoints and one error body. Assumption IDs such as A5 or A11 are defined in the [root README](../README.md#assumptions).
 
+Interactive documentation is at `http://localhost:8080/swagger-ui.html`; the generated OpenAPI JSON is at `http://localhost:8080/v3/api-docs`. Swagger UI's **Try it out** sends real requests to the running application. This document gives the detailed behavior and validation precedence.
+
 | Item | Rule |
 | --- | --- |
 | Base URL | `http://localhost:8080`. The frontend gets it from `VITE_API_BASE_URL`. |
