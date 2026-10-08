@@ -1,0 +1,17 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Task Manager (local)",
+      "Group": "Presentation",
+      "Host": "db",
+      "Port": 5432,
+      "MaintenanceDB": "taskmanager",
+      "Username": "taskmanager",
+      "SSLMode": "prefer",
+      "ConnectionParameters": {
+        "sslmode": "prefer",
+        "connect_timeout": 10
+      }
+    }
+  }
+}

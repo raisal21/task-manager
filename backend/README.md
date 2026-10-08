@@ -11,6 +11,8 @@ Assumption IDs (A1 to A18) are defined in the [root README](../README.md#assumpt
 
 ## Prerequisites
 
+These are for local Maven development and tests. To run the full application with Docker only, use `docker compose up --build -d --wait` from the repository root (see the [root quick start](../README.md#quick-start)).
+
 - JDK 17 or newer. The build uses Java release 17 (`<java.version>17</java.version>`), also on a newer JDK.
 - No Maven installation is necessary. The Maven wrapper (`./mvnw`) downloads Maven 3.9.16 on first use.
 - Docker with Compose v2 (`docker compose version` must work) and a running Docker engine. It supplies PostgreSQL 18 (`postgres:18`) for the local database and for the integration tests (Testcontainers).
@@ -19,12 +21,16 @@ Assumption IDs (A1 to A18) are defined in the [root README](../README.md#assumpt
 
 ## Start
 
+For the containerized backend, run `docker compose up --build -d --wait backend` from the repository root. Compose starts the database if needed and waits for it to be healthy before starting the backend. Inside Docker the database URL uses `db:5432`, not `localhost:5432`. The backend image build runs the unit tests; integration tests still run separately with `./mvnw verify`.
+
+For local Maven development, stop any containerized backend with `docker compose stop backend` first to free port 8080, then:
+
 1. Start the database from the repository root: `docker compose up -d --wait db` (it returns when PostgreSQL is healthy).
 2. Start the backend in this folder: `./mvnw spring-boot:run`. On Windows, use `mvnw.cmd` instead of `./mvnw` (not tested on Windows).
 
 The backend listens on `http://localhost:8080`. Check it with `curl -i http://localhost:8080/api/boards`. It makes the schema itself at startup (see "Schema creation").
 
-The settings come from environment variables. Each has a local default. The database defaults match `compose.yaml`.
+The settings come from environment variables. Each has a local default. The default credentials match `compose.yaml`; the local database URL uses `localhost`, while Compose overrides it to use the `db` service hostname.
 
 | Variable | Default |
 | --- | --- |
@@ -35,12 +41,6 @@ The settings come from environment variables. Each has a local default. The data
 
 The default credentials are for local development only. The compose service binds port 5432 to `127.0.0.1`, and its data stays in a Docker volume after `docker compose down`.
 
-## Schema creation
-
-Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` when the backend starts. An empty database gets the full schema (`V1`, `V2`, `V3`) with no manual step. To start again from an empty database, run `docker compose down -v` in the repository root (this deletes the data in the compose database), then step 1 of "Start". Hibernate is set to `ddl-auto=validate`: it only checks that the entities match the schema and never changes it. [SCHEMA.md](SCHEMA.md) gives the tables and the reasons.
-
-Schema alternative that was examined and rejected: the task status is a `VARCHAR(20)` with a `CHECK`, not a lookup table or a PostgreSQL `ENUM`. Three fixed values do not need a join, and the `CHECK` shows the rule in the table definition. [SCHEMA.md](SCHEMA.md) gives more rejected alternatives.
-
 ## Interactive API documentation
 
 Open `http://localhost:8080/swagger-ui.html` after starting the backend. Swagger UI lists the seven operations under **Boards** and **Tasks**. **Try it out → Execute** sends a real request to the running backend. The generated OpenAPI specification is available at `/v3/api-docs` (JSON) and `/v3/api-docs.yaml` (YAML).
@@ -48,6 +48,12 @@ Open `http://localhost:8080/swagger-ui.html` after starting the backend. Swagger
 `springdoc-openapi-starter-webmvc-ui` 3.1.1 generates the specification from the controllers and request/response types. `OpenApiConfig` gives the title and the per-operation error responses; schema annotations supply examples and input rules. Only `/api/**` paths are documented. The `/error` fallback controller is excluded. The handwritten [API.md](API.md) describes ordering, validation precedence, races, and other rules beyond the generated schema.
 
 Swagger UI runs in the backend, so it needs no additional container or CORS origin. The same frontend, API, and pgAdmin presentation sequence is documented in the [root README](../README.md#api-browser-for-presentations-swagger-ui).
+
+## Schema creation
+
+Flyway runs the versioned SQL migrations in `src/main/resources/db/migration` when the backend starts. An empty database gets the full schema (`V1`, `V2`, `V3`) with no manual step. To start again from an empty database, run `docker compose down -v` in the repository root (this deletes the data in the compose database), then step 1 of "Start". Hibernate is set to `ddl-auto=validate`: it only checks that the entities match the schema and never changes it. [SCHEMA.md](SCHEMA.md) gives the tables and the reasons.
+
+Schema alternative that was examined and rejected: the task status is a `VARCHAR(20)` with a `CHECK`, not a lookup table or a PostgreSQL `ENUM`. Three fixed values do not need a join, and the `CHECK` shows the rule in the table definition. [SCHEMA.md](SCHEMA.md) gives more rejected alternatives.
 
 ## Test
 

@@ -28,7 +28,75 @@ It has two isolated services in one Git repository. They send data to each other
 
 ## Quick start
 
-Use three terminals, in a clone of this repository. You need Docker, JDK 17 or newer, and Node.js 20.19+ or 22.12+ (see the service READMEs for the versions that were tested).
+### All services with Docker Compose
+
+You need Docker with Compose v2 or newer and a running Docker engine. From the repository root:
+
+```bash
+docker compose up --build -d --wait
+```
+
+This builds and starts PostgreSQL, the backend, and the frontend, and returns when all three are healthy. The backend waits for PostgreSQL's healthcheck before starting. Open `http://localhost:5173`; the API is at `http://localhost:8080`. All published ports bind to `127.0.0.1`. You do not need Java or Node.js installed on the host.
+
+If you prefer to start and wait for the database first, the existing command still works:
+
+```bash
+docker compose up -d --wait db
+docker compose up --build -d --wait backend frontend
+```
+
+The `db` command only starts the database; it does not stop backend or frontend containers that are already running. The frontend can start without the backend, and its API requests come from your browser to `http://localhost:8080`, not to a Docker hostname.
+
+Check status with `docker compose ps` and logs with `docker compose logs -f backend frontend`. Stop all services with `docker compose down`; database data stays in the existing Docker volume. Re-run the start command after code changes to rebuild the images. The frontend container runs Vite's development server, not a production web server.
+
+### Database browser for presentations (pgAdmin)
+
+pgAdmin is an optional Compose service. Start the application and pgAdmin together:
+
+```bash
+docker compose --profile tools up --build -d --wait
+```
+
+If the application is already running, start only pgAdmin and its database dependency:
+
+```bash
+docker compose up -d --wait pgadmin
+```
+
+Open `http://localhost:5050` and log in with `admin@example.com` / `taskmanager`. These are local demo credentials; the published port binds to `127.0.0.1`. The server **Task Manager (local)** is preconfigured under **Presentation**. Connect with the database password `taskmanager`. The Docker hostname is `db`, not `localhost`, because pgAdmin connects from its own container.
+
+To show the schema, expand **Databases → taskmanager → Schemas → public → Tables**. The application tables are `boards` and `tasks`; `flyway_schema_history` records the migrations. Right-click a table and choose **View/Edit Data → All Rows** to show its saved data. Open the database's **Query Tool** to run a read-only presentation query:
+
+```sql
+SELECT b.id AS board_id, b.name AS board, t.id AS task_id,
+       t.title, t.status, t.updated_at
+FROM public.boards AS b
+LEFT JOIN public.tasks AS t ON t.board_id = b.id
+ORDER BY b.created_at, b.id, t.created_at, t.id;
+```
+
+Refresh the table data or rerun the query after changes in the frontend. pgAdmin settings persist in the separate `pgadmin-data` volume. Stop the tool with `docker compose stop pgadmin`; the application's database stays running.
+
+To show the relationship visually, right-click the `taskmanager` database and choose **ERD For Database**. The diagram shows the foreign key from `tasks.board_id` to `boards.id`.
+
+### API browser for presentations (Swagger UI)
+
+The backend serves Swagger UI at `http://localhost:8080/swagger-ui.html`. It is included in the backend image and needs no separate Compose service. The generated OpenAPI JSON is at `http://localhost:8080/v3/api-docs`.
+
+The UI groups the seven operations under **Boards** and **Tasks**, with request examples, the three task statuses, success schemas, and the common error body. Expand **GET /api/boards**, click **Try it out**, then **Execute** to show a live response. For requests with an ID, use an ID returned by a previous request. The UI calls the same running backend as the frontend, so POST, PATCH, and DELETE affect the same saved data.
+
+A presentation sequence:
+
+1. Show the frontend at `http://localhost:5173` and explain boards and task statuses.
+2. In Swagger UI, list boards, create a presentation board, add a task, change its status, and filter its tasks. Use the returned IDs. The example PATCH body is `{"status":"IN_PROGRESS"}`.
+3. Show a 400 by sending an invalid status, or a 409 by trying to delete that presentation board while it still has a task.
+4. Refresh the data in pgAdmin at `http://localhost:5050` to show the stored rows. Use **ERD For Database** to explain `tasks.board_id → boards.id`.
+
+See [backend/API.md](backend/API.md) for the detailed API rules and [backend/SCHEMA.md](backend/SCHEMA.md) for the database constraints.
+
+### Local backend and frontend
+
+Use this alternative for local development with hot reload. You need Docker, JDK 17 or newer, and Node.js 20.19+ or 22.12+ (see the service READMEs for the versions that were tested). If you previously started the full Compose stack, run `docker compose stop backend frontend` first to free ports 8080 and 5173. Then use three terminals, each starting in the repository root:
 
 ```bash
 # 1. The database, on 127.0.0.1:5432 (returns when PostgreSQL is healthy)
@@ -41,7 +109,7 @@ cd backend && ./mvnw spring-boot:run
 cd frontend && npm install && npm run dev
 ```
 
-Open `http://localhost:5173`. Stop the services with `Ctrl+C`, and the database with `docker compose down` (its data stays in a Docker volume).
+Open `http://localhost:5173`. Stop the local services with `Ctrl+C`, and the database with `docker compose down` (its data stays in a Docker volume).
 
 ## Tests
 
