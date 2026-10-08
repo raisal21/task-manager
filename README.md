@@ -116,7 +116,7 @@ Open `http://localhost:5173`. Stop the local services with `Ctrl+C`, and the dat
 | Where | Command | Result |
 | --- | --- | --- |
 | `backend/` | `./mvnw verify` | The unit tests and the integration tests with PostgreSQL in Testcontainers (needs Docker). `./mvnw test` runs only the unit tests and needs no Docker. |
-| `frontend/` | `npm test` | Component tests of the task panel (loading, backend down, status filter) and unit tests of the filter functions. No backend and no Docker needed. |
+| `frontend/` | `npm test` | Component tests of the task panel (loading, backend down, status filter, counts) and unit tests of the filter functions. No backend and no Docker needed. |
 | `frontend/` | `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm run build` | The quality checks. |
 
 ## Self-checks
@@ -161,9 +161,9 @@ These are limits of the current build.
 - **Last write wins.** There is no authentication, no realtime update, and no version check. When two users or two browser tabs change the same task, the last write stays (A4, A18). The UI does not show changes of other users until you read the list again ("Reload" or "Retry").
 - **An unclear POST.** A POST that gets no answer can be in the database. The UI tells the user to reload the list before a new submit, and it never sends a POST again by itself (A17). The submit guard of a form covers one pending request in one tab. It does not prevent all duplicate writes, and the backend accepts boards with the same name (A3).
 - **Ignored requests are not cancelled.** A request that the UI ignores after a board change still reaches the backend. For example, a task that you added on a board stays there, also if you changed the board before the answer came.
-- **Small data only.** The service reads all tasks of a board and filters them by status in memory. There is no pagination, no caching, and no index on the status.
-- **Tests.** The frontend has automated tests for the task panel (loading, backend down, status filter) and the filter functions. The other components have none. The backend has unit and integration tests. The browser flows were checked by hand.
-- **Not in the selected scope.** A board delete in the UI, title and description edit and status counts.
+- **Small data only.** The service reads all tasks of a board and filters them by status in memory. There is no pagination, no caching, and no index on the status. The UI also reads the whole list of the selected board for the status counts and for the "Open" view.
+- **Tests.** The frontend has automated tests for the task panel (loading, backend down, status filter, counts) and the filter functions. The other components have none. The backend has unit and integration tests. The browser flows were checked by hand.
+- **Not in the selected scope.** A board delete in the UI, and title and description edit.
 
 ## Future work
 

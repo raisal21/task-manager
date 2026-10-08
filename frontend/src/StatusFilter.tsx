@@ -1,9 +1,11 @@
 import { STATUS_LABELS, TASK_STATUSES } from "./taskStatus";
-import type { StatusFilterValue } from "./taskFilter";
+import { countForFilter, type StatusCounts, type StatusFilterValue } from "./taskFilter";
 
 interface StatusFilterProps {
   value: StatusFilterValue;
   onChange: (value: StatusFilterValue) => void;
+  /** The number of tasks of the board for each status. undefined until the board is read: no numbers show. */
+  counts?: StatusCounts;
 }
 
 const OPTIONS: readonly { value: StatusFilterValue; label: string; hint?: string }[] = [
@@ -18,7 +20,7 @@ const OPTIONS: readonly { value: StatusFilterValue; label: string; hint?: string
  * The radio buttons are native, so the keyboard and the screen reader work as for any radio group.
  * The CSS draws each one as a toggle button.
  */
-export default function StatusFilter({ value, onChange }: StatusFilterProps) {
+export default function StatusFilter({ value, onChange, counts }: StatusFilterProps) {
   return (
     <fieldset className="status-filter">
       <legend>Show</legend>
@@ -35,7 +37,18 @@ export default function StatusFilter({ value, onChange }: StatusFilterProps) {
             <span>
               {option.label}
               {option.hint !== undefined && (
-                <span className="visually-hidden"> ({option.hint})</span>
+                // The space is outside the hidden span, so that the accessible name is "Open (To Do and In Progress)".
+                <>
+                  {" "}
+                  <span className="visually-hidden">({option.hint})</span>
+                </>
+              )}
+              {counts !== undefined && (
+                // The space is for the accessible name: "To Do 3".
+                <>
+                  {" "}
+                  <span className="filter-count">{countForFilter(counts, option.value)}</span>
+                </>
               )}
             </span>
           </label>

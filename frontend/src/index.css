@@ -376,6 +376,27 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
+.filter-count {
+  display: inline-block;
+  min-width: 1.5em;
+  margin-left: 0.15rem;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.filter-option:has(input:checked) .filter-count {
+  background: var(--surface);
+  color: var(--accent);
+}
+
 @media (pointer: coarse) {
   .filter-option {
     min-height: 2.75rem;

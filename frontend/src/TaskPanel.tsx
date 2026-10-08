@@ -5,7 +5,7 @@ import StateMessage from "./StateMessage";
 import StatusFilter from "./StatusFilter";
 import TaskForm from "./TaskForm";
 import TaskTable from "./TaskTable";
-import { serverStatus, visibleTasks, type StatusFilterValue } from "./taskFilter";
+import { countByStatus, serverStatus, visibleTasks, type StatusFilterValue } from "./taskFilter";
 
 interface TaskPanelProps {
   boardId: number | null;
@@ -36,8 +36,24 @@ function BoardTasks({ boardId }: { boardId: number }) {
     (signal: AbortSignal) => getTasks(boardId, status, signal),
     [boardId, status],
   );
-  const { state, reload } = useRequest(readTasks);
+  const { state, reload: reloadList } = useRequest(readTasks);
   const tasks = state.status === "success" ? visibleTasks(state.data, filter) : [];
+
+  // The counts of the filter buttons need every task of the board, whatever the filter is. This is one more
+  // list request for each board change (no new endpoint). A failed counts read shows no numbers: the list
+  // above has its own error text and Retry button.
+  const readAllTasks = useCallback(
+    (signal: AbortSignal) => getTasks(boardId, null, signal),
+    [boardId],
+  );
+  const { state: allTasks, reload: reloadCounts } = useRequest(readAllTasks);
+  const counts = allTasks.status === "success" ? countByStatus(allTasks.data) : undefined;
+
+  // Every task change (add, status, delete) and every manual reload reads the list and the counts again.
+  const reload = useCallback(() => {
+    reloadList();
+    reloadCounts();
+  }, [reloadList, reloadCounts]);
 
   return (
     <>
@@ -47,7 +63,7 @@ function BoardTasks({ boardId }: { boardId: number }) {
         </button>
       </div>
       <TaskForm boardId={boardId} onAdded={reload} />
-      <StatusFilter value={filter} onChange={setFilter} />
+      <StatusFilter value={filter} onChange={setFilter} counts={counts} />
       {state.status === "loading" && <StateMessage state="loading" what="tasks" />}
       {state.status === "error" && (
         <StateMessage state="read-error" error={state.error} onRetry={reload} />
