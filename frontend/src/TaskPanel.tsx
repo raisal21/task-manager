@@ -2,9 +2,10 @@ import { useCallback, useState } from "react";
 import { getTasks } from "./api/client";
 import { useRequest } from "./hooks/useRequest";
 import StateMessage from "./StateMessage";
-import StatusFilter, { type StatusFilterValue } from "./StatusFilter";
+import StatusFilter from "./StatusFilter";
 import TaskForm from "./TaskForm";
 import TaskTable from "./TaskTable";
+import { serverStatus, visibleTasks, type StatusFilterValue } from "./taskFilter";
 
 interface TaskPanelProps {
   boardId: number | null;
@@ -27,12 +28,16 @@ export default function TaskPanel({ boardId }: TaskPanelProps) {
 
 function BoardTasks({ boardId }: { boardId: number }) {
   const [filter, setFilter] = useState<StatusFilterValue>("ALL");
-  // The read belongs to this board and this filter. A change of the filter makes a new read function.
+  // The read belongs to this board and to the status that the server filters. A change of that status makes a
+  // new read function. All and Open read the same list (Open is cut on the client), so a switch between them
+  // shows the list that is already loaded.
+  const status = serverStatus(filter);
   const readTasks = useCallback(
-    (signal: AbortSignal) => getTasks(boardId, filter === "ALL" ? null : filter, signal),
-    [boardId, filter],
+    (signal: AbortSignal) => getTasks(boardId, status, signal),
+    [boardId, status],
   );
   const { state, reload } = useRequest(readTasks);
+  const tasks = state.status === "success" ? visibleTasks(state.data, filter) : [];
 
   return (
     <>
@@ -47,11 +52,11 @@ function BoardTasks({ boardId }: { boardId: number }) {
       {state.status === "error" && (
         <StateMessage state="read-error" error={state.error} onRetry={reload} />
       )}
-      {state.status === "success" && state.data.length === 0 && (
+      {state.status === "success" && tasks.length === 0 && (
         <StateMessage state="empty" what="tasks" status={filter === "ALL" ? undefined : filter} />
       )}
-      {state.status === "success" && state.data.length > 0 && (
-        <TaskTable tasks={state.data} onChanged={reload} />
+      {state.status === "success" && tasks.length > 0 && (
+        <TaskTable tasks={tasks} onChanged={reload} />
       )}
     </>
   );

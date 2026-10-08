@@ -116,7 +116,7 @@ Open `http://localhost:5173`. Stop the local services with `Ctrl+C`, and the dat
 | Where | Command | Result |
 | --- | --- | --- |
 | `backend/` | `./mvnw verify` | The unit tests and the integration tests with PostgreSQL in Testcontainers (needs Docker). `./mvnw test` runs only the unit tests and needs no Docker. |
-| `frontend/` | `npm test` | Two component tests of the loading and backend-down states (no backend and no Docker needed). |
+| `frontend/` | `npm test` | Component tests of the task panel (loading, backend down, status filter) and unit tests of the filter functions. No backend and no Docker needed. |
 | `frontend/` | `npm run lint`, `npm run format:check`, `npm run typecheck`, and `npm run build` | The quality checks. |
 
 ## Self-checks
@@ -148,7 +148,7 @@ The case study gives no rule for these points. Each row is a decision of this pr
 | A11 | 404 or 400 first | Malformed JSON 400, then the board or task 404, then the fields 400 |
 | A12 | The source of the times | The service sets them from its clock. A new task uses one instant for `created_at` and `updated_at`. The database defaults are for SQL without the API. |
 | A13 | Board delete in the UI | Not in the UI. The API has it. |
-| A14 | The location of the status filter | The server, through `?status=` |
+| A14 | The location of the status filter | The server, through `?status=`. The "Open" view (To Do and In Progress together) is the exception: the UI cuts it from the list without a filter, because the API filters one status at a time. |
 | A15 | The CORS origin | From the configuration (`APP_CORS_ALLOWED_ORIGINS`), with the default `http://localhost:5173` |
 | A16 | The endpoint for the backend independence check | `GET /api/boards` |
 | A17 | More than one submit, and a POST without a response | The UI disables the button and rejects a second submit while the form request is pending. It does not send a POST again by itself. Without a response, it tells the user that the board or task can be in the database, and to reload the list before a new submit. |
@@ -162,8 +162,8 @@ These are limits of the current build.
 - **An unclear POST.** A POST that gets no answer can be in the database. The UI tells the user to reload the list before a new submit, and it never sends a POST again by itself (A17). The submit guard of a form covers one pending request in one tab. It does not prevent all duplicate writes, and the backend accepts boards with the same name (A3).
 - **Ignored requests are not cancelled.** A request that the UI ignores after a board change still reaches the backend. For example, a task that you added on a board stays there, also if you changed the board before the answer came.
 - **Small data only.** The service reads all tasks of a board and filters them by status in memory. There is no pagination, no caching, and no index on the status.
-- **Tests.** The frontend has two automated tests, for the loading and backend-down states of the task panel. The other components have none. The backend has unit and integration tests. The browser flows were checked by hand.
-- **Not in the selected scope.** A board delete in the UI, title and description edit, an "Open" filter, and status counts.
+- **Tests.** The frontend has automated tests for the task panel (loading, backend down, status filter) and the filter functions. The other components have none. The backend has unit and integration tests. The browser flows were checked by hand.
+- **Not in the selected scope.** A board delete in the UI, title and description edit and status counts.
 
 ## Future work
 

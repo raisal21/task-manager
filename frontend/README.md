@@ -39,7 +39,7 @@ Copy `.env.example` to `.env` to change it. `src/api/config.ts` is the only file
 | `npm run build`        | The type check, then the Vite production build in `dist/`       |
 | `npm test`             | Vitest, once (`vitest run`). No backend and no Docker needed.   |
 
-`npm test` runs two component tests of `TaskPanel` (R25, R29): the loading text while the server has not answered, and the "Cannot reach the server" error with a Retry button when the backend is down. They replace `fetch` with one helper (`src/test/stubFetch.ts`), so they never reach a real backend. The other components have no automated tests. The rest of the behavior was checked in a browser against the real backend: add a board, select it, add a task, change its status, filter, delete the task, and stop the backend to see the error texts. Each of these steps works without a full page reload.
+`npm test` runs component tests of `TaskPanel` (R25, R29) and unit tests of the filter functions. The `TaskPanel` tests cover the loading text while the server has not answered, the "Cannot reach the server" error with a Retry button when the backend is down, and the status filter (the Open view, and the `?status=` read for one status). They replace `fetch` with one helper (`src/test/stubFetch.ts`), so they never reach a real backend. The other components have no automated tests. The rest of the behavior was checked in a browser against the real backend: add a board, select it, add a task, change its status, filter, delete the task, and stop the backend to see the error texts. Each of these steps works without a full page reload.
 
 ## Selected stack and reasons
 
@@ -63,7 +63,7 @@ The lockfile `package-lock.json` has the full dependency tree.
 - **Tasks of the selected board.** A table with Title, Description, Status, Created, and Updated (local time, the API sends UTC). A form above it adds a task (a title and an optional description).
 - **Status.** Each row has a select ("To Do", "In Progress", "Done") that sends `PATCH /api/tasks/{id}`. The select keeps the last status from the server until the answer comes, and then the list reads again.
 - **Delete.** Each row has a "Delete" button. The browser asks for a confirmation (`window.confirm`) first.
-- **Filter.** The radio buttons "All", "To Do", "In Progress", and "Done" read the list with `?status=` (the server does the filter, A14). After each write, the list reads again with the current filter.
+- **Filter.** The toggle buttons (native radio buttons) "All", "Open", "To Do", "In Progress", and "Done" choose what the table shows. "To Do", "In Progress", and "Done" read the list with `?status=` (the server does the filter, A14). "Open" shows the tasks with the status `TODO` or `IN_PROGRESS` together. It reads the list without `?status=` and cuts it in the browser (`src/taskFilter.ts`), because the API filters one status at a time (R10). A switch between "All" and "Open" shows the list that is already loaded and sends no request. After each write, the list reads again with the current filter.
 
 Both forms and each row have a local pending guard. During a request, the button is disabled ("Saving…"), and a second submit is ignored. The frontend never sends a POST again by itself (A17). If a POST gets no answer, the board or the task can be in the database. The form says so, keeps your input, and tells you to reload the list.
 
@@ -80,7 +80,7 @@ All texts are in `src/StateMessage.tsx`. A text says only what the browser knows
 | Read: error response                                        | "The server returned an error: {detail}." The detail is the text of the error body.                                                                                 | Retry   |
 | Read: an answer that the page cannot read                   | "Something went wrong: The server sent a response that this page cannot read."                                                                                      | Retry   |
 | No boards                                                   | "No boards yet. Create one to start."                                                                                                                               |         |
-| No tasks                                                    | "No tasks yet." With a filter: "No tasks with the status {status}."                                                                                                 |         |
+| No tasks                                                    | "No tasks yet." With a filter: "No tasks with the status {status}." or "No open tasks (To Do or In Progress)."                                                      |         |
 | Board or task POST without an answer                        | "The server may have saved this board (task). Reload the list before you send it again." The form keeps the input.                                                  |         |
 | Status change or delete without an answer                   | "The server did not answer, so the status change (or the delete) may or may not be saved. Reload the list to check." The row keeps its last status from the server. |         |
 | Error response to a write                                   | "The server returned an error: {detail}." near the form or the row                                                                                                  |         |
@@ -99,12 +99,13 @@ All texts are in `src/StateMessage.tsx`. A text says only what the browser knows
 | `src/BoardList.tsx`, `src/BoardForm.tsx`                                                                | The board list and the form to add a board                                                                   |
 | `src/TaskPanel.tsx`, `src/StatusFilter.tsx`, `src/TaskForm.tsx`, `src/TaskTable.tsx`, `src/TaskRow.tsx` | The task panel, the filter, the form, the table, and one row                                                 |
 | `src/StateMessage.tsx`                                                                                  | All state texts                                                                                              |
-| `src/format.ts`, `src/taskStatus.ts`                                                                    | The date helper and the status labels                                                                        |
-| `src/TaskPanel.test.tsx`, `src/test/stubFetch.ts`                                                       | The two `TaskPanel` tests and the helper that replaces `fetch`                                               |
+| `src/taskFilter.ts`, `src/format.ts`, `src/taskStatus.ts`                                               | The filter functions (the Open predicate), the date helper, and the status labels                            |
+| `src/*.test.ts(x)`, `src/test/`                                                                         | The tests, the helper that replaces `fetch`, and the test data                                               |
 
 ## Limits
 
 - A request that the UI ignores after a board change is not cancelled in the backend. A task that you added on a board stays there, also if you changed the board before the answer came.
 - The guards cover one pending request in one browser tab. They do not prevent duplicate boards from two tabs or from a second submit after an unclear result. The backend does not reject duplicate board names (A3).
 - Last write wins. The UI does not detect changes from other users or tabs. Use "Reload" or "Retry" to see them.
-- Only `TaskPanel` has automated tests, for two states (loading, backend down). The other components were checked by hand.
+- Only `TaskPanel` (the loading, backend-down, and filter behavior) and the filter functions have automated tests. The other components were checked by hand.
+- The R10 API filters one status at a time. "Open" is a view of the browser, so it needs the whole list of the board.

@@ -1,13 +1,17 @@
 import { API_BASE_URL } from "./api/config";
-import type { ApiError, TaskStatus } from "./api/types";
+import type { ApiError } from "./api/types";
+import type { StatusFilterValue } from "./taskFilter";
 import { STATUS_LABELS } from "./taskStatus";
 
 type WriteAction = "add board" | "add task" | "status change" | "delete";
 
+/** The filter of a list that shows nothing. All has no text of its own: it means that the board has no tasks. */
+type EmptyFilter = Exclude<StatusFilterValue, "ALL">;
+
 export type StateMessageProps =
   | { state: "loading"; what: "boards" | "tasks" }
   | { state: "empty"; what: "boards" }
-  | { state: "empty"; what: "tasks"; status?: TaskStatus }
+  | { state: "empty"; what: "tasks"; status?: EmptyFilter }
   | { state: "read-error"; error: ApiError; onRetry: () => void }
   | { state: "write-error"; action: WriteAction; error: ApiError; id?: string }
   | { state: "validation"; text: string; id?: string };
@@ -52,12 +56,15 @@ function ErrorText({ text, id }: { text: string; id?: string }) {
   );
 }
 
-function emptyText(props: { what: "boards" | "tasks"; status?: TaskStatus }): string {
+function emptyText(props: { what: "boards" | "tasks"; status?: EmptyFilter }): string {
   if (props.what === "boards") {
     return "No boards yet. Create one to start.";
   }
-  return props.status === undefined
-    ? "No tasks yet."
+  if (props.status === undefined) {
+    return "No tasks yet.";
+  }
+  return props.status === "OPEN"
+    ? "No open tasks (To Do or In Progress)."
     : `No tasks with the status ${STATUS_LABELS[props.status]}.`;
 }
 
