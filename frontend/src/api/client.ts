@@ -1,5 +1,11 @@
 import { API_BASE_URL } from "./config";
-import { ApiError, type Board, type NewTask, type Task, type TaskStatus } from "./types";
+import {
+  ApiError,
+  type Board,
+  type NewTask,
+  type Task,
+  type TaskStatus,
+} from "./types";
 
 // The only file that uses fetch. Components call the functions at the end of this file.
 
@@ -53,9 +59,13 @@ async function readJson<T>(response: Response): Promise<T> {
   try {
     return (await response.json()) as T;
   } catch {
-    throw new ApiError("unexpected", "The server sent a response that this page cannot read", {
-      status: response.status,
-    });
+    throw new ApiError(
+      "unexpected",
+      "The server sent a response that this page cannot read",
+      {
+        status: response.status,
+      },
+    );
   }
 }
 
@@ -108,7 +118,10 @@ export function createTask(boardId: number, task: NewTask): Promise<Task> {
   });
 }
 
-export function changeTaskStatus(taskId: number, status: TaskStatus): Promise<Task> {
+export function changeTaskStatus(
+  taskId: number,
+  status: TaskStatus,
+): Promise<Task> {
   return request<Task>(`/api/tasks/${taskId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
